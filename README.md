@@ -6,37 +6,6 @@ A cloud-native application is an application that is specifically designed for c
 ## Description
 A lightweight Node.js application designed to monitor the health of a backend service instance. The `/healthz` endpoint verifies database connectivity and downstream API availability, returning appropriate HTTP status codes.
 
-## Features
-- **Database Health Check**: Inserts a record in the `HealthCheck` table to verify database connectivity.
-- **Downstream API Health Check**: Verifies the availability of dependent APIs.
-- **Stateless Responses**: Ensures no response caching.
-- **HTTP Method Validation**: Supports only `GET` on `/healthz`, with proper handling for invalid methods and payloads.
-- **Cloud-Native Design**: Meets cloud-native application requirements using Sequelize and MySQL.
-
-
-The `/healthz` endpoint is implemented to meet the following requirements:
-- **Insert a Record in the HealthCheck Table**: Every successful call inserts a new record in the database.
-- **Return Status Codes**:
-  - `200 OK`: If the record is inserted successfully.
-  - `503 Service Unavailable`: If the insert operation fails (e.g., database unavailability).
-- **No Caching**: Adds `Cache-Control: no-cache` headers to responses.
-- **Stateless**: The application works without requiring a restart between API calls.
-- **HTTP Method Validation**:
-  - Only `GET` requests are supported.
-  - Requests using `POST`, `PUT`, `DELETE`, or `PATCH` return `405 Method Not Allowed`.
-- **Payload Validation**:
-  - Requests with a payload return `400 Bad Request`.
-  - Responses do not include any body or payload.
-- **Database Requirements**:
-  - Supports only MySQL or PostgreSQL. Other databases are not allowed.
- 
-Additionally:
-- The application can handle database server failures:
-  - Shut down the database while the application is running to verify failure handling.
-  - Restart the database without restarting the application to ensure functionality resumes.
-- The code must not generate `500 Internal Server` errors during operation.
-- Generative AI technologies were used to assist in creating this application, and any relevant IDE integrations can be verified.
-
 ## Prerequisites
 To build and deploy the application locally, ensure you have the following installed:
 1. **Node.js** (v14 or higher): [Install Node.js](https://nodejs.org/)
@@ -106,9 +75,3 @@ To prepare the application:
 5. Test the Endpoint: Use curl or a tool like Postman to verify functionality:
    ```bash
    curl -X GET http://localhost:8080/healthz
-
-
-## Author
-Tejaswini Chavan
-
-Feel free to replace placeholders like `your-username` or `your_root_password` with your actual details.
