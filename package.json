@@ -1,0 +1,27 @@
+{
+    "name": "webapp",
+    "version": "1.0.0",
+    "description": "Cloud Native Health Check API",
+    "main": "app.js",
+    "scripts": {
+      "start": "node app.js",
+      "dev": "nodemon server.js",
+      "test": "jest --detectOpenHandles",
+      "test:watch": "jest --watch",
+      "test:coverage": "jest --coverage"
+    },
+    "dependencies": {
+        "axios": "^1.7.9",
+        "dotenv": "^16.0.3",
+        "express": "^4.18.2",
+        "mysql2": "^3.12.0",
+        "sequelize": "^6.37.5"
+    },
+    "devDependencies": {
+        "jest": "^29.7.0",
+        "nodemon": "^2.0.22",
+        "supertest": "^7.0.0"
+    },
+    "author": "Tejaswini Chavan",
+    "license": "ISC"
+}
