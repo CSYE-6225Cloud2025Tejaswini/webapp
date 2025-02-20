@@ -1,6 +1,6 @@
 const applyHeaders = (response) => {
     response.set({
-      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
       "Pragma": "no-cache",
       "X-Content-Type-Options": "nosniff",
     });
