@@ -1,4 +1,4 @@
-const { HealthStatus, sequelizeInstance } = require("../models");
+const { HealthStatus, sequelize } = require("../models");
 
 const { applyHeaders } = require("../utils/headers");
  
@@ -43,7 +43,7 @@ class HealthStatusController {
  
     try {
 
-      await sequelizeInstance.authenticate();
+      await sequelize.authenticate();
 
       await HealthStatus.create({
 
@@ -55,6 +55,7 @@ class HealthStatusController {
 
     } catch (err) {
 
+      console.log(err);
       return res.status(503).end();
 
     }
