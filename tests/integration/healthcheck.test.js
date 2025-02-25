@@ -21,7 +21,7 @@ describe("Healthcheck API Integration Tests", () => {
         .get("/healthz")
         // .set("Accept", "application/json");
  
-      expect(response.status).toBe(201);
+      expect(response.status).toBe(200);
  
       // Verify database entry
       const healthChecks = await HealthStatus.findAll();
