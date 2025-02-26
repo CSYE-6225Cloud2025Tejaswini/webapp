@@ -1,9 +1,9 @@
 packer {
   required_plugins {
-    # amazon-ebs = {
-    #   source  = "github.com/hashicorp/amazon"
-    #   version = ">= 1.0.0"
-    # }
+    amazon-ebs = {
+      source  = "github.com/hashicorp/amazon"
+      version = ">= 1.0.0"
+    }
     googlecompute = {
       source  = "github.com/hashicorp/googlecompute"
       version = ">= 1.0.0"
@@ -108,17 +108,17 @@ variable "gcp_storage_location" {
   default = "us"
 }
  
-# # AWS AMI Build
-# source "amazon-ebs" "ubuntu" {
-#   region                      = var.aws_region
-#   source_ami                  = local.ami_id
-#   instance_type               = var.instance_type
-#   ssh_username                = "ubuntu"
-#   ami_name                    = "custom-nodejs-mysql-{{timestamp}}"
-#   ami_description             = "Custom image with Node.js binary and MySQL"
-#   associate_public_ip_address = true
-#   ssh_timeout                 = "10m"
-# }
+# AWS AMI Build
+source "amazon-ebs" "ubuntu" {
+  region                      = var.aws_region
+  source_ami                  = local.ami_id
+  instance_type               = var.instance_type
+  ssh_username                = "ubuntu"
+  ami_name                    = "custom-nodejs-mysql-{{timestamp}}"
+  ami_description             = "Custom image with Node.js binary and MySQL"
+  associate_public_ip_address = true
+  ssh_timeout                 = "10m"
+}
  
 # GCP Image Build
 source "googlecompute" "ubuntu" {
@@ -135,7 +135,7 @@ source "googlecompute" "ubuntu" {
  
 build {
   sources = [
-    # "source.amazon-ebs.ubuntu",
+    "source.amazon-ebs.ubuntu",
     "source.googlecompute.ubuntu"
   ]
  
