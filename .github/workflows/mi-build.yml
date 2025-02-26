@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'infra/packer/**'
-      - '.github/workflows/packer-build.yml'
+      - '.github/workflows/mi-build.yml'
 
 jobs:
   build_images:
@@ -118,7 +118,7 @@ jobs:
             -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
             -var "gcp_project_id=${GCP_PROJECT_ID}" \
             -var "gcp_demo_project_id=${GCP_DEMO_PROJECT_ID}" \
-            packer-machine-image.pkr.hcl
+            machine-image.pkr.hcl
 
       - name: Verify AWS AMI Creation
         run: |
