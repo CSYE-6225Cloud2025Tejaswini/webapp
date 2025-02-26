@@ -40,14 +40,14 @@ echo "Finding the latest compute image in DEV project..."
 gcloud auth activate-service-account --key-file=$DEV_GCP_KEY
 gcloud config set project $DEV_PROJECT_ID
 
-# Get the latest compute image name with "csye6225-nodejs-mysql" prefix
+# Get the latest compute image name with "custom-nodejs-mysql" prefix
 COMPUTE_IMAGE_NAME=$(gcloud compute images list --project=$DEV_PROJECT_ID \
-  --filter="name~'csye6225-nodejs-mysql'" \
+  --filter="name~'custom-nodejs-mysql'" \
   --sort-by=~creationTimestamp --limit=1 \
   --format="value(name)")
 
 if [ -z "$COMPUTE_IMAGE_NAME" ]; then
-  echo "No compute image found with prefix 'csye6225-nodejs-mysql'. Exiting..."
+  echo "No compute image found with prefix 'custom-nodejs-mysql'. Exiting..."
   exit 1
 fi
 

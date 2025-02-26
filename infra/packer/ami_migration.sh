@@ -8,7 +8,7 @@ TARGET_AWS_SECRET_KEY="${DEMO_AWS_SECRET_ACCESS_KEY}"
 
 # Input Region Details
 AWS_REGION="us-east-1"
-NEW_AMI_NAME="Copied-csye6225-nodejs-mysql-$(date +%Y%m%d-%H%M%S)"
+NEW_AMI_NAME="Copied-custom-nodejs-mysql-$(date +%Y%m%d-%H%M%S)"
 
 # Set AWS CLI Profiles for Both Accounts
 aws configure set aws_access_key_id $SOURCE_AWS_ACCESS_KEY --profile source-account
@@ -34,7 +34,7 @@ echo "Getting latest AMI ID..."
 SOURCE_AMI_ID=$(aws ec2 describe-images \
     --profile source-account \
     --owners $SOURCE_ACCOUNT_ID \
-    --filters "Name=name,Values=csye6225-nodejs-mysql-*" \
+    --filters "Name=name,Values=custom-nodejs-mysql-*" \
     --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
     --output text)
 echo "Found latest AMI: $SOURCE_AMI_ID"
