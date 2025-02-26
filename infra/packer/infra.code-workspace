@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "infra",
+			"path": "../../../../../Downloads/infra"
+		},
+		{
+			"name": "webapp-fork",
+			"path": "../.."
+		}
+	],
+	"settings": {}
+}
