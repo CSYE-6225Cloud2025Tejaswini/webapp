@@ -1,0 +1,39 @@
+name: Verify Packer Configuration
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  packer_validation:
+    name: Verify Packer Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@v3
+      - name: Install Global Pkg
+        run: npm install -g pkg
+      - name: Compile App with Pkg
+        run: |
+          npm install
+          pkg server.js --output infra/packer/dist/app_binary --targets node18-linux-x64
+          chmod +x infra/packer/dist/app_binary
+          echo "Compilation completed! Executable located at infra/packer/dist/app_binary"
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@v2
+        with:
+          version: latest
+      - name: Packer Initialization
+        working-directory: infra/packer
+        run: packer init .
+      - name: Check Packer Code Format
+        working-directory: infra/packer
+        run: |
+          if packer fmt -check -diff .; then
+            echo "Packer formatting is correct."
+          else
+            echo "Packer format validation failed. Execute 'packer fmt' locally to correct formatting."
+            exit 1
+          fi
+      - name: Validate Packer Template
+        working-directory: infra/packer
+        run: packer validate machine-image.pkr.hcl
