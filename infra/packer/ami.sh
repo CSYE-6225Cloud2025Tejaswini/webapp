@@ -43,54 +43,54 @@ DEST_ACCOUNT=$(aws sts get-caller-identity \
    --profile destination-profile \
    --query 'Account' \
    --output text)
-   
+
 echo "Destination Account ID: $DEST_ACCOUNT"
 
-# Step 1: Grant AMI permissions to the Target Account
-#echo "Granting access to AMI ($LATEST_AMI) for destination account ($DEST_ACCOUNT)..."
-#aws ec2 modify-image-attribute \
- #   --profile source-profile \
-  #  --image-id $LATEST_AMI \
-   # --launch-permission "Add=[{UserId=$DEST_ACCOUNT}]" \
-    #--region $AWS_REGION
+Step 1: Grant AMI permissions to the Target Account
+echo "Granting access to AMI ($LATEST_AMI) for destination account ($DEST_ACCOUNT)..."
+aws ec2 modify-image-attribute \
+    --profile source-profile \
+    --image-id $LATEST_AMI \
+    --launch-permission "Add=[{UserId=$DEST_ACCOUNT}]" \
+    --region $AWS_REGION
 
-# Step 2: Retrieve the Snapshot ID linked to the AMI
-#echo "Retrieving snapshot associated with AMI..."
-#SNAPSHOT=$(aws ec2 describe-images \
-#    --profile source-profile \
-#    --image-ids $LATEST_AMI \
-#   --region $AWS_REGION \
-#    --query 'Images[0].BlockDeviceMappings[0].Ebs.SnapshotId' \
-#   --output text)
+Step 2: Retrieve the Snapshot ID linked to the AMI
+echo "Retrieving snapshot associated with AMI..."
+SNAPSHOT=$(aws ec2 describe-images \
+    --profile source-profile \
+    --image-ids $LATEST_AMI \
+    --region $AWS_REGION \
+    --query 'Images[0].BlockDeviceMappings[0].Ebs.SnapshotId' \
+    --output text)
 
-#echo "Snapshot ID: $SNAPSHOT"
+echo "Snapshot ID: $SNAPSHOT"
 
-# Step 3: Grant Snapshot permissions to Target Account
-#echo "Sharing snapshot ($SNAPSHOT) with destination account ($DEST_ACCOUNT)..."
-#aws ec2 modify-snapshot-attribute \
-#    --profile source-profile \
-#    --snapshot-id $SNAPSHOT \
-#    --attribute createVolumePermission \
-#    --operation-type add \
-#    --user-ids $DEST_ACCOUNT \
-#    --region $AWS_REGION
-# 
-# Step 4: Copy AMI to the Target Account
-#echo "Initiating AMI copy in destination account..."
-#DEST_AMI=$(aws ec2 copy-image \
-#    --profile destination-profile \
-#    --source-image-id $LATEST_AMI \
-#    --source-region $AWS_REGION \
-#    --region $AWS_REGION \
-#    --name "$NEW_AMI_TAG" \
-#    --query 'ImageId' --output text)
+Step 3: Grant Snapshot permissions to Target Account
+echo "Sharing snapshot ($SNAPSHOT) with destination account ($DEST_ACCOUNT)..."
+aws ec2 modify-snapshot-attribute \
+    --profile source-profile \
+    --snapshot-id $SNAPSHOT \
+    --attribute createVolumePermission \
+    --operation-type add \
+    --user-ids $DEST_ACCOUNT \
+    --region $AWS_REGION
+ 
+ Step 4: Copy AMI to the Target Account
+echo "Initiating AMI copy in destination account..."
+DEST_AMI=$(aws ec2 copy-image \
+    --profile destination-profile \
+    --source-image-id $LATEST_AMI \
+    --source-region $AWS_REGION \
+    --region $AWS_REGION \
+    --name "$NEW_AMI_TAG" \
+    --query 'ImageId' --output text)
 
-#echo "Copy Operation Started for AMI: $DEST_AMI"
+echo "Copy Operation Started for AMI: $DEST_AMI"
 
-# Step 5: Monitor AMI availability
-#echo "⏳ Waiting for AMI ($DEST_AMI) to be available..."
-#aws ec2 wait image-available --profile destination-profile --image-ids $DEST_AMI --region $AWS_REGION
+ Step 5: Monitor AMI availability
+echo "⏳ Waiting for AMI ($DEST_AMI) to be available..."
+aws ec2 wait image-available --profile destination-profile --image-ids $DEST_AMI --region $AWS_REGION
 
-#echo "AMI ($DEST_AMI) is now accessible in destination account!"
+echo "AMI ($DEST_AMI) is now accessible in destination account!"
 
-#echo "Process Completed Successfully!"
+echo "Process Completed Successfully!"
