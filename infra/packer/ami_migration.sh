@@ -1,97 +1,97 @@
 #!/bin/bash
 
-# Get AWS credentials from environment variables
-SOURCE_AWS_ACCESS_KEY="${DEV_AWS_ACCESS_KEY_ID}"
-SOURCE_AWS_SECRET_KEY="${DEV_AWS_SECRET_ACCESS_KEY}"
-TARGET_AWS_ACCESS_KEY="${DEMO_AWS_ACCESS_KEY_ID}"
-TARGET_AWS_SECRET_KEY="${DEMO_AWS_SECRET_ACCESS_KEY}"
+# Fetch AWS credentials from environment variables
+SRC_AWS_ACCESS="${DEV_AWS_ACCESS_KEY_ID}"
+SRC_AWS_SECRET="${DEV_AWS_SECRET_ACCESS_KEY}"
+DEST_AWS_ACCESS="${DEMO_AWS_ACCESS_KEY_ID}"
+DEST_AWS_SECRET="${DEMO_AWS_SECRET_ACCESS_KEY}"
 
-# Input Region Details
+# Define AWS region and name format for new AMI
 AWS_REGION="us-east-1"
-NEW_AMI_NAME="Copied-custom-nodejs-mysql-$(date +%Y%m%d-%H%M%S)"
+NEW_AMI_TAG="Replica-NodeJS-MySQL-$(date +%Y%m%d-%H%M%S)"
 
-# Set AWS CLI Profiles for Both Accounts
-aws configure set aws_access_key_id $SOURCE_AWS_ACCESS_KEY --profile source-account
-aws configure set aws_secret_access_key $SOURCE_AWS_SECRET_KEY --profile source-account
-aws configure set region $AWS_REGION --profile source-account
+# Configure AWS CLI profiles for both accounts
+aws configure set aws_access_key_id $SRC_AWS_ACCESS --profile source-profile
+aws configure set aws_secret_access_key $SRC_AWS_SECRET --profile source-profile
+aws configure set region $AWS_REGION --profile source-profile
 
-aws configure set aws_access_key_id $TARGET_AWS_ACCESS_KEY --profile target-account
-aws configure set aws_secret_access_key $TARGET_AWS_SECRET_KEY --profile target-account
-aws configure set region $AWS_REGION --profile target-account
+aws configure set aws_access_key_id $DEST_AWS_ACCESS --profile destination-profile
+aws configure set aws_secret_access_key $DEST_AWS_SECRET --profile destination-profile
+aws configure set region $AWS_REGION --profile destination-profile
 
-echo "AWS CLI Profiles Configured"
+echo "AWS CLI Profiles Configured Successfully"
 
-# Get Source Account ID
-echo "Getting source account ID..."
-SOURCE_ACCOUNT_ID=$(aws sts get-caller-identity \
-    --profile source-account \
+# Fetch Source Account ID
+echo "Retrieving Source Account ID..."
+SRC_ACCOUNT=$(aws sts get-caller-identity \
+    --profile source-profile \
     --query 'Account' \
     --output text)
-echo "Source Account ID: $SOURCE_ACCOUNT_ID"
+echo "Source Account ID: $SRC_ACCOUNT"
 
-# Get latest AMI with the name pattern used in packer build
-echo "Getting latest AMI ID..."
-SOURCE_AMI_ID=$(aws ec2 describe-images \
-    --profile source-account \
-    --owners $SOURCE_ACCOUNT_ID \
-    --filters "Name=name,Values=custom-nodejs-mysql-*" \
+# Get the most recent AMI with the specified pattern
+echo "Fetching the most recent AMI..."
+LATEST_AMI=$(aws ec2 describe-images \
+    --profile source-profile \
+    --owners $SRC_ACCOUNT \
+    --filters "Name=name,Values=nodejs-mysql-*" \
     --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
     --output text)
-echo "Found latest AMI: $SOURCE_AMI_ID"
+echo "Latest AMI ID: $LATEST_AMI"
 
-# Get Target Account ID
-echo "🔍 Getting target account ID..."
-TARGET_ACCOUNT_ID=$(aws sts get-caller-identity \
-    --profile target-account \
+# Retrieve Target Account ID
+echo "🔍 Retrieving Destination Account ID..."
+DEST_ACCOUNT=$(aws sts get-caller-identity \
+    --profile destination-profile \
     --query 'Account' \
     --output text)
-echo "Target Account ID: $TARGET_ACCOUNT_ID"
+echo "Destination Account ID: $DEST_ACCOUNT"
 
-# 1️⃣ Share the AMI with the Target Account
-echo "Sharing AMI ($SOURCE_AMI_ID) with target account ($TARGET_ACCOUNT_ID)..."
+# Step 1: Grant AMI permissions to the Target Account
+echo "Granting access to AMI ($LATEST_AMI) for destination account ($DEST_ACCOUNT)..."
 aws ec2 modify-image-attribute \
-    --profile source-account \
-    --image-id $SOURCE_AMI_ID \
-    --launch-permission "Add=[{UserId=$TARGET_ACCOUNT_ID}]" \
+    --profile source-profile \
+    --image-id $LATEST_AMI \
+    --launch-permission "Add=[{UserId=$DEST_ACCOUNT}]" \
     --region $AWS_REGION
 
-# 2️⃣ Get the Snapshot ID of the AMI
-echo "Fetching Snapshot ID..."
-SNAPSHOT_ID=$(aws ec2 describe-images \
-    --profile source-account \
-    --image-ids $SOURCE_AMI_ID \
+# Step 2: Retrieve the Snapshot ID linked to the AMI
+echo "Retrieving snapshot associated with AMI..."
+SNAPSHOT=$(aws ec2 describe-images \
+    --profile source-profile \
+    --image-ids $LATEST_AMI \
     --region $AWS_REGION \
     --query 'Images[0].BlockDeviceMappings[0].Ebs.SnapshotId' \
     --output text)
 
-echo "Found Snapshot ID: $SNAPSHOT_ID"
+echo "Snapshot ID: $SNAPSHOT"
 
-# 3️⃣ Share the Snapshot with the Target Account
-echo "Sharing Snapshot ($SNAPSHOT_ID) with target account ($TARGET_ACCOUNT_ID)..."
+# Step 3: Grant Snapshot permissions to Target Account
+echo "Sharing snapshot ($SNAPSHOT) with destination account ($DEST_ACCOUNT)..."
 aws ec2 modify-snapshot-attribute \
-    --profile source-account \
-    --snapshot-id $SNAPSHOT_ID \
+    --profile source-profile \
+    --snapshot-id $SNAPSHOT \
     --attribute createVolumePermission \
     --operation-type add \
-    --user-ids $TARGET_ACCOUNT_ID \
+    --user-ids $DEST_ACCOUNT \
     --region $AWS_REGION
 
-# 4️⃣ Copy the AMI to the Target Account
-echo "Copying AMI to target account..."
-TARGET_AMI_ID=$(aws ec2 copy-image \
-    --profile target-account \
-    --source-image-id $SOURCE_AMI_ID \
+# Step 4: Copy AMI to the Target Account
+echo "Initiating AMI copy in destination account..."
+DEST_AMI=$(aws ec2 copy-image \
+    --profile destination-profile \
+    --source-image-id $LATEST_AMI \
     --source-region $AWS_REGION \
     --region $AWS_REGION \
-    --name "$NEW_AMI_NAME" \
+    --name "$NEW_AMI_TAG" \
     --query 'ImageId' --output text)
 
-echo "AMI Copy Started: $TARGET_AMI_ID"
+echo "Copy Operation Started for AMI: $DEST_AMI"
 
-# 5️⃣ Wait for AMI to be Available
-echo "⏳ Waiting for AMI ($TARGET_AMI_ID) to be available..."
-aws ec2 wait image-available --profile target-account --image-ids $TARGET_AMI_ID --region $AWS_REGION
+# Step 5: Monitor AMI availability
+echo "⏳ Waiting for AMI ($DEST_AMI) to be available..."
+aws ec2 wait image-available --profile destination-profile --image-ids $DEST_AMI --region $AWS_REGION
 
-echo "AMI ($TARGET_AMI_ID) is now available in target account!"
+echo "AMI ($DEST_AMI) is now accessible in destination account!"
 
-echo "Migration Complete!"
+echo "Process Completed Successfully!"
