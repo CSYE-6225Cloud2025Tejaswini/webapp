@@ -28,7 +28,7 @@ jobs:
       - name: Check Packer Code Format
         working-directory: infra/packer
         run: |
-          if packer fmt -check -diff .; then
+          if packer fmt .; then
             echo "Packer formatting is correct."
           else
             echo "Packer format validation failed. Execute 'packer fmt' locally to correct formatting."

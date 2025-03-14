@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define MySQL root password
-MYSQL_ROOT_PASSWORD="Welcome@1234!!"
+MYSQL_ROOT_PASSWORD="Pass1234"
 
 echo "Creating non-login user csye6225..."
 sudo groupadd -f csye6225
@@ -14,7 +14,6 @@ sudo apt-get install -y mysql-server
 echo "Setting up MySQL..."
 sudo systemctl enable mysql
 sudo systemctl start mysql
-
 # Secure MySQL Installation
 secure_mysql() {
     echo "Securing MySQL installation..."
@@ -37,7 +36,7 @@ cat <<EOF | sudo tee /opt/myapp/.env > /dev/null
 DB_URL=mysql://root:Pass1234@localhost:3306/healthcheck_db
 DB_NAME=healthcheck_db
 DB_USER=root
-DB_PASSWORD=Welcome@1234!!
+DB_PASSWORD=Pass1234
 DB_HOST=localhost
 PORT=8080
 DB_PORT=3306
@@ -47,7 +46,7 @@ sudo chmod 600 /opt/myapp/.env
 
 echo "Setting ownership of application files..."
 sudo chown -R csye6225:csye6225 /opt/myapp
-sudo chmod -R 750 /opt/myapp
+sudo chmod -R 777 /opt/myapp
 
 echo "Setting up systemd service..."
 sudo mv /tmp/webapp.service /etc/systemd/system/webapp.service
