@@ -290,10 +290,6 @@ build {
     "googlecompute.ubuntu"
   ]
 
-  provisioner "file" {
-    source      = "dist/webapp"
-    destination = "/tmp/webapp"
-  }
 
   provisioner "file" {
     source      = "setup.sh"
