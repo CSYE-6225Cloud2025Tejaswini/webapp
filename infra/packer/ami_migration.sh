@@ -24,9 +24,9 @@
 # Fetch Source Account ID
 #echo "Retrieving Source Account ID..."
 #SRC_ACCOUNT=$(aws sts get-caller-identity \
-    --profile source-profile \
-    --query 'Account' \
-    --output text)
+ #   --profile source-profile \
+  #  --query 'Account' \
+  #  --output text)
 #echo "Source Account ID: $SRC_ACCOUNT"
 
 # Get the most recent AMI with the specified pattern
