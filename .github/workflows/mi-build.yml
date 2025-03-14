@@ -112,9 +112,9 @@ jobs:
         working-directory: infra/packer
         run: |
           packer build \
-            -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
-            -var "gcp_project_id=${GCP_PROJECT_ID}" \
-            -var "gcp_demo_project_id=${GCP_DEMO_PROJECT_ID}" \
+            -var "demo_account_id=${secerets.DEMO_ACCOUNT_ID}" \
+            -var "gcp_project_id=${secrets.GCP_PROJECT_ID}" \
+            -var "gcp_demo_project_id=${secrets.GCP_DEMO_PROJECT_ID}" \
             machine-image.pkr.hcl
 
       - name: Verify AWS AMI Creation
