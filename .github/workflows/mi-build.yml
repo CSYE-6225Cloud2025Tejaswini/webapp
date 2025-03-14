@@ -108,15 +108,6 @@ jobs:
         working-directory: infra/packer
         run: packer init .
 
-      - name: Build AMI and Machine Images
-        working-directory: infra/packer
-        run: |
-          packer build \
-            -var "stage_account_identifier=${{ secrets.DEMO_AWS_ACCESS_KEY_ID}}" \
-            -var "gcp_source_env_id=${{ env.GCP_DEV_CREDENTIALS }}" \
-            -var "gcp_stage_env_id=${{ env.GCP_DEMO_PROJECT_ID }}" \
-            machine-image.pkr.hcl
-
       - name: Verify AWS AMI Creation
         run: |
           echo "Verifying AWS AMI creation..."
