@@ -1,49 +1,50 @@
 #!/bin/bash
 
-# Fetch AWS credentials from environment variables
-# SRC_AWS_ACCESS="${DEV_AWS_ACCESS_KEY_ID}"
-#SRC_AWS_SECRET="${DEV_AWS_SECRET_ACCESS_KEY}"
-#DEST_AWS_ACCESS="${DEMO_AWS_ACCESS_KEY_ID}"
-#DEST_AWS_SECRET="${DEMO_AWS_SECRET_ACCESS_KEY}"
+Fetch AWS credentials from environment variables
+SRC_AWS_ACCESS="${DEV_AWS_ACCESS_KEY_ID}"
+SRC_AWS_SECRET="${DEV_AWS_SECRET_ACCESS_KEY}"
+DEST_AWS_ACCESS="${DEMO_AWS_ACCESS_KEY_ID}"
+DEST_AWS_SECRET="${DEMO_AWS_SECRET_ACCESS_KEY}"
 
-# Define AWS region and name format for new AMI
-#AWS_REGION="us-east-1"
-#NEW_AMI_TAG="Replica-NodeJS-MySQL-$(date +%Y%m%d-%H%M%S)"
+Define AWS region and name format for new AMI
+AWS_REGION="us-east-1"
+NEW_AMI_TAG="Replica-NodeJS-MySQL-$(date +%Y%m%d-%H%M%S)"
 
-# Configure AWS CLI profiles for both accounts
-#aws configure set aws_access_key_id $SRC_AWS_ACCESS --profile source-profile
-#aws configure set aws_secret_access_key $SRC_AWS_SECRET --profile source-profile
-#aws configure set region $AWS_REGION --profile source-profile
+Configure AWS CLI profiles for both accounts
+aws configure set aws_access_key_id $SRC_AWS_ACCESS --profile source-profile
+aws configure set aws_secret_access_key $SRC_AWS_SECRET --profile source-profile
+aws configure set region $AWS_REGION --profile source-profile
 
-#aws configure set aws_access_key_id $DEST_AWS_ACCESS --profile destination-profile
-#aws configure set aws_secret_access_key $DEST_AWS_SECRET --profile destination-profile
-#aws configure set region $AWS_REGION --profile destination-profile
+aws configure set aws_access_key_id $DEST_AWS_ACCESS --profile destination-profile
+aws configure set aws_secret_access_key $DEST_AWS_SECRET --profile destination-profile
+aws configure set region $AWS_REGION --profile destination-profile
 
-#echo "AWS CLI Profiles Configured Successfully"
+echo "AWS CLI Profiles Configured Successfully"
 
-# Fetch Source Account ID
-#echo "Retrieving Source Account ID..."
-#SRC_ACCOUNT=$(aws sts get-caller-identity \
- #   --profile source-profile \
-  #  --query 'Account' \
-  #  --output text)
-#echo "Source Account ID: $SRC_ACCOUNT"
+Fetch Source Account ID
+echo "Retrieving Source Account ID..."
+SRC_ACCOUNT=$(aws sts get-caller-identity \
+   --profile source-profile \
+   --query 'Account' \
+   --output text)
+echo "Source Account ID: $SRC_ACCOUNT"
 
-# Get the most recent AMI with the specified pattern
-#echo "Fetching the most recent AMI..."
-#LATEST_AMI=$(aws ec2 describe-images \
-#   --owners $SRC_ACCOUNT \
- ##  --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
-   # --output text)
-#echo "Latest AMI ID: $LATEST_AMI"
+Get the most recent AMI with the specified pattern
+echo "Fetching the most recent AMI..."
+LATEST_AMI=$(aws ec2 describe-images \
+   --owners $SRC_ACCOUNT \
+   --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
+   --output text)
+echo "Latest AMI ID: $LATEST_AMI"
 
-# Retrieve Target Account ID
-#echo "🔍 Retrieving Destination Account ID..."
-#DEST_ACCOUNT=$(aws sts get-caller-identity \
- #   --profile destination-profile \
-  #  --query 'Account' \
-   # --output text)
-#echo "Destination Account ID: $DEST_ACCOUNT"
+Retrieve Target Account ID
+echo "🔍 Retrieving Destination Account ID..."
+DEST_ACCOUNT=$(aws sts get-caller-identity \
+   --profile destination-profile \
+   --query 'Account' \
+   --output text)
+   
+echo "Destination Account ID: $DEST_ACCOUNT"
 
 # Step 1: Grant AMI permissions to the Target Account
 #echo "Granting access to AMI ($LATEST_AMI) for destination account ($DEST_ACCOUNT)..."
