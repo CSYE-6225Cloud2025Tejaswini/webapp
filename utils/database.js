@@ -13,6 +13,7 @@ const sequelize = new Sequelize(
       host: DB_HOST,
       port: DB_PORT,
       dialect: "mysql",
+      dialectModule: require('mysql2'),
       logging: false,
       dialectOptions: {
         // added this as I was getting error for the 200 OK response
