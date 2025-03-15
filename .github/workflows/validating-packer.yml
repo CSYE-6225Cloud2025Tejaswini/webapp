@@ -41,4 +41,4 @@ jobs:
           fi
       - name: Validate Packer Template
         working-directory: infra/packer
-        run: packer validate ubuntu-packer.pkr.hcl
+        run: packer validate machine-image.pkr.hcl
