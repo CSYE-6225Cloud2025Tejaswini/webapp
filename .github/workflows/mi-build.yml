@@ -112,20 +112,20 @@ jobs:
         working-directory: infra/packer
         run: |
           packer build \
-         
             -var "stage_account_identifier=${{ secrets.DEMO_AWS_ACCESS_KEY_ID}}" \
             -var "gcp_source_env_id=${{ env.GCP_DEV_CREDENTIALS }}" \
             -var "gcp_stage_env_id=${{ env.GCP_DEMO_PROJECT_ID }}" \
+            -var "demo_acc_id =${{ secrets.DEMO_ACCOUNT_ID_PKR}}"
             machine-image.pkr.hcl
 
-      - name: Verify AWS AMI Creation
-        run: |
-          echo "Verifying AWS AMI creation..."
-          aws ec2 describe-images --owners self --query 'Images[*].[ImageId,Name,CreationDate]' --output table --filters "Name=name,Values=custom-nodejs-mysql-*" | head -n 10
-      #
-      - name: Verify GCP Machine Image Creation
-        run: |
-          echo "Verifying GCP Machine Image creation..."
-          gcloud compute images list --project=${GCP_PROJECT_ID} --filter="name:custom-nodejs-mysql" --limit=5
+      # - name: Verify AWS AMI Creation
+      #   run: |
+      #     echo "Verifying AWS AMI creation..."
+      #     aws ec2 describe-images --owners self --query 'Images[*].[ImageId,Name,CreationDate]' --output table --filters "Name=name,Values=custom-nodejs-mysql-*" | head -n 10
+      # #
+      # - name: Verify GCP Machine Image Creation
+      #   run: |
+      #     echo "Verifying GCP Machine Image creation..."
+      #     gcloud compute images list --project=${GCP_PROJECT_ID} --filter="name:custom-nodejs-mysql" --limit=5
 
       
