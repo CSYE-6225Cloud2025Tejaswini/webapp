@@ -63,7 +63,7 @@ jobs:
                        -var "subnet_identifier=${{ secrets.SUBNET_IDENTIFIER_DEV }}" \
                        -var "demo_account_id=${{ secrets.DEMO_ACCOUNT_ID }}" \
                        -only=amazon-ebs.ubuntu_image \
-                       packer-ubuntu.pkr.hcl
+                       ubuntu-packer.pkr.hcl
 
       # Configure GCP DEV Credentials
       - name: Setup GCP DEV Credentials
