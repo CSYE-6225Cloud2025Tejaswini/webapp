@@ -12,12 +12,17 @@ jobs:
         uses: actions/checkout@v3
       - name: Install Global Pkg
         run: npm install -g pkg
+     
       - name: Compile App with Pkg
         run: |
           npm install
-          pkg server.js --output infra/packer/dist/app_binary --targets node18-linux-x64
-          chmod +x infra/packer/dist/app_binary
-          echo "Compilation completed! Executable located at infra/packer/dist/app_binary"
+          pkg server.js --output infra/packer/dist/webapp --targets node18-linux-x64
+          chmod +x infra/packer/dist/webapp
+          echo "Compilation completed! Executable located at infra/packer/dist/webapp"
+
+      - name: Debug Build Output
+        run: ls -lah infra/packer/dist/   
+             
       - name: Setup Packer
         uses: hashicorp/setup-packer@v2
         with:

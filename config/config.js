@@ -17,11 +17,13 @@ require("dotenv").config({
     development: {
         url: process.env.DB_URL,
         dialect: "mysql",
+        dialectModule: require('mysql2'),
       logging: false,
     },
     test: {
       url: process.env.DATABASE_URL,
       dialect: "mysql",
+      dialectModule: require('mysql2'),
       logging: false,
     },
 };
