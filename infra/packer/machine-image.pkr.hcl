@@ -105,7 +105,7 @@ source "amazon-ebs" "ubuntu" {
   ami_description             = "Custom image with Node.js binary and MySQL"
   associate_public_ip_address = true
   ssh_timeout                 = "10m"
-#  ami_user                    = "559050238253"
+  #  ami_user                    = "559050238253"
 }
 
 # GCP System Creation
