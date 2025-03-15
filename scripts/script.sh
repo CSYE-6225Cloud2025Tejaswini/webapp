@@ -4,7 +4,7 @@ USER_GROUP="apiServiceGroup"
 SERVICE_ACCOUNT="apiServiceUser"
 LOCAL_ARCHIVE_PATH="./deployment.zip" # Updated local path variable
 TARGET_INSTALL_DIR="/opt/deploy6225"
-SQL_ROOT_PASS="SecurePass@1234!!"     # Root password for MySQL
+SQL_ROOT_PASS="Pass1234"     # Root password for MySQL
 
 # Function to verify 'unzip' installation
 verify_unzip() {
@@ -42,8 +42,16 @@ sudo systemctl enable --now mysql
 echo "Enhancing MySQL security settings..."
 harden_mysql_security
 
+#echo "Initializing database $DATABASE_TITLE..."
+#sudo mysql -u root -p"$SQL_ROOT_PASS" -e "CREATE DATABASE IF NOT EXISTS $DATABASE_TITLE;"
+
 echo "Initializing database $DATABASE_TITLE..."
-sudo mysql -u root -p"$SQL_ROOT_PASS" -e "CREATE DATABASE IF NOT EXISTS $DATABASE_TITLE;"
+if sudo mysql -u root -p"$SQL_ROOT_PASS" -e "CREATE DATABASE IF NOT EXISTS $DATABASE_TITLE;" 2>/dev/null; then
+    echo "Database $DATABASE_TITLE created or already exists."
+else
+    echo "Failed to create database $DATABASE_TITLE!"
+    exit 1
+fi
 
 echo "Setting up Linux group: $USER_GROUP..."
 sudo groupadd -f $USER_GROUP
