@@ -136,6 +136,10 @@ build {
     source      = "setup.sh"
     destination = "/tmp/setup.sh"
   }
+    provisioner "file" {
+    source      = "dist/webapp"
+    destination = "/tmp/webapp"
+  }
 
   provisioner "file" {
     source      = "webapp.service"

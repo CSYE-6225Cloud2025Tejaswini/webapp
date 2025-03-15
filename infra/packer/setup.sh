@@ -55,6 +55,6 @@ sudo chmod 644 /etc/systemd/system/webapp.service
 echo "Activating system service configuration..."
 sudo systemctl daemon-reload
 sudo systemctl enable webapp
-sudo systemctl start webapp
+# sudo systemctl start webapp
 
 echo "Installation completed successfully!"
