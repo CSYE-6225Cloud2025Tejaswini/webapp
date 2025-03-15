@@ -1,60 +1,67 @@
 #!/bin/bash
+# Refresh system package information
+sudo apt update -y
+sudo apt upgrade -y
 
-# Set database administrator access credentials
-DB_ADMIN_SECRET="Pass1234"
-
-echo "Establishing service account csye6225..."
-sudo groupadd -f csye6225
-sudo useradd -r -M -g csye6225 -s /usr/sbin/nologin csye6225
-
-echo "Refreshing package repositories and installing required components..."
-sudo apt-get update -y
+# Install Database - MySQL
+echo "Setting up MySQL..."
+sudo apt-get install -y gnupg curl
+curl -fsSL https://repo.mysql.com/RPM-GPG-KEY-mysql-2022 | sudo gpg --dearmor -o /usr/share/keyrings/mysql-keyring.gpg
+sudo apt-get update
 sudo apt-get install -y mysql-server
-
-echo "Configuring database service..."
-sudo systemctl enable mysql
 sudo systemctl start mysql
-# Initialize database security
-configure_database() {
-    echo "Implementing database security measures..."
-    sudo mysql <<EOF
-ALTER USER 'root'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY '$DB_ADMIN_SECRET';
-DELETE FROM mysql.user WHERE User='';
-DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
-FLUSH PRIVILEGES;
-EOF
-}
-configure_database
+sudo systemctl enable mysql
 
-echo "Preparing application deployment location..."
-sudo mkdir -p /opt/myapp
-sudo mv /tmp/webapp /opt/myapp/webapp
-sudo chmod +x /opt/myapp/webapp
+# Install Unzip Utility
+sudo apt install unzip -y
 
-echo "Generating configuration file..."
-cat <<EOF | sudo tee /opt/myapp/.env > /dev/null
-DB_URL=mysql://root:Pass1234@localhost:3306/healthcheck_db
-DB_NAME=healthcheck_db
-DB_USER=root
-DB_PASSWORD=Pass1234
-DB_HOST=localhost
-PORT=8080
-DB_PORT=3306
-EOF
+# Deploy Web Service
+sudo mv /tmp/webapp.service /etc/systemd/system
+sudo rm -rf /opt/webapp/*
+sudo unzip /tmp/application.zip -d /opt/webapp
 
-sudo chmod 600 /opt/myapp/.env
+sudo mv /tmp/.env /opt/webapp
 
-echo "Adjusting file permissions for application..."
-sudo chown -R csye6225:csye6225 /opt/myapp
-sudo chmod -R 777 /opt/myapp
+# Create Service-Specific User
+sudo groupadd -f servicegroup
+sudo useradd -r -M -g servicegroup -s /usr/sbin/nologin serviceuser || true
+sudo useradd -r -s /usr/sbin/nologin -m serviceuser || true
 
-echo "Registering application as system service..."
-sudo mv /tmp/webapp.service /etc/systemd/system/webapp.service
-sudo chmod 644 /etc/systemd/system/webapp.service
+# Install Node.js and Dependencies
+echo "Installing Node.js runtime..."
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
 
-echo "Activating system service configuration..."
+# Verify Node.js and npm installation
+node -v
+npm -v
+
+# Prepare webapp directory with proper permissions
+echo "Setting up application directory..."
+cd /opt/webapp
+sudo chown -R ubuntu:ubuntu /opt/webapp
+sudo chmod -R 755 /opt/webapp
+
+# Install application dependencies
+echo "Fetching application dependencies..."
+npm ci
+npm install dotenv express mysql2 sequelize
+
+# Set permissions for service user after npm operations
+sudo chown -R serviceuser:servicegroup /opt/webapp
+
+# echo "Application dependencies successfully installed."
+
+# Configure MySQL for Application Usage
+echo "Setting up MySQL schema..."
+sudo mysql -e 'CREATE DATABASE IF NOT EXISTS HealthCheck;'
+sudo mysql -e "CREATE USER IF NOT EXISTS 'root'@'localhost' IDENTIFIED BY 'Pass1234';"
+sudo mysql -e "GRANT ALL PRIVILEGES ON HealthCheck.* TO 'root'@'localhost';"
+sudo mysql -e 'FLUSH PRIVILEGES;'
+
+# Restart Web Service
 sudo systemctl daemon-reload
-sudo systemctl enable webapp
-# sudo systemctl start webapp
+sudo systemctl enable webapp.service
+sudo systemctl start webapp.service
 
-echo "Installation completed successfully!"
+# echo "Application deployment completed."

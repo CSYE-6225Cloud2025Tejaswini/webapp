@@ -1,9 +1,6 @@
 name: unit tests webapp
  
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
