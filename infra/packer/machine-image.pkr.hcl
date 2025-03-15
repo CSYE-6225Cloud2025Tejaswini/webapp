@@ -94,8 +94,10 @@ variable "gcp_backup_region" {
   type    = string
   default = "us"
 }
-variable "demo_acc_id"{
-type = list(string)
+
+variable "demo_acc_id" {
+  type    = list(string)
+  default = ["your accountid"]
 }
 
 # AWS System Creation
@@ -108,7 +110,7 @@ source "amazon-ebs" "ubuntu" {
   ami_description             = "Custom image with Node.js binary and MySQL"
   associate_public_ip_address = true
   ssh_timeout                 = "10m"
-  ami_users                   = var.demo_acc_id 
+  ami_users                   = var.demo_acc_id
 }
 
 # GCP System Creation

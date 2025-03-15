@@ -10,6 +10,9 @@ jobs:
     name: Build and Share AMI/Machine Images
     runs-on: ubuntu-latest
 
+    env:
+      PKR_VAR_demo_acc_id : ${{ secrets.DEMO_ACCOUNT_ID_PKR}}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -111,12 +114,12 @@ jobs:
       - name: Build AMI and Machine Images
         working-directory: infra/packer
         run: |
-          packer build \
-            -var "stage_account_identifier=${{ secrets.DEMO_AWS_ACCESS_KEY_ID}}" \
-            -var "gcp_source_env_id=${{ env.GCP_DEV_CREDENTIALS }}" \
-            -var "gcp_stage_env_id=${{ env.GCP_DEMO_PROJECT_ID }}" \
-            -var "demo_acc_id =${{ secrets.DEMO_ACCOUNT_ID_PKR}}"
-            machine-image.pkr.hcl
+          packer build .
+      #      -var "stage_account_identifier=${{ secrets.DEMO_AWS_ACCESS_KEY_ID}}" \
+      #      -var "gcp_source_env_id=${{ env.GCP_DEV_CREDENTIALS }}" \
+            # -var "gcp_stage_env_id=${{ env.GCP_DEMO_PROJECT_ID }}" \
+            # -var "demo_acc_id =${{ secrets.DEMO_ACCOUNT_ID_PKR}}"
+            # machine-image.pkr.hcl
 
       # - name: Verify AWS AMI Creation
       #   run: |
