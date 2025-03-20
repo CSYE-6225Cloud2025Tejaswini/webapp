@@ -40,6 +40,7 @@ const database = {
   sequelize,
   Sequelize,
   HealthStatus: healthcheckModel(sequelize, Sequelize),
+  File: require("./file")(sequelize, Sequelize),
 };
 
 module.exports = database;

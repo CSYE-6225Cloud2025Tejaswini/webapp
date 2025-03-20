@@ -4,7 +4,7 @@ const express = require("express");
 const healthRoutes = require("./routes/healthcheck");
 //const { initializeDatabase } = require("./utils/database");
 const { applyHeaders } = require("./utils/headers");
- 
+const fileRoutes = require("./routes/file");
 const app = express();
 const PORT = process.env.PORT || 8080;
  
@@ -26,6 +26,7 @@ app.use(
  
 // Mount health check routes
 app.use("/", healthRoutes);
+app.use("/", fileRoutes);
  
 // Handle unknown routes
 app.use((req, res) => {
