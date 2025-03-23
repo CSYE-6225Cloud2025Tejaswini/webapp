@@ -13,33 +13,34 @@
 // module.exports = database;
 
 const { Sequelize } = require("sequelize");
-const config = require("../config/config.js");
-const environment = process.env.NODE_ENV || "development";
-const healthcheckModel = require("./healthcheck");
+require("dotenv").config();
 
-// Use database.js configuration approach
+// Load from environment variables (set by EC2 user data)
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
+    port: process.env.DB_PORT || 3306,
     dialect: "mysql",
     logging: false,
     dialectOptions: {
-      authPlugins: {
-        mysql_clear_password: () => () =>
-          Buffer.from(process.env.DB_PASSWORD + "\0"),
-      },
+      ssl: false // Adjust if your RDS requires SSL
     },
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    }
   }
 );
 
 const database = {
   sequelize,
   Sequelize,
-  HealthStatus: healthcheckModel(sequelize, Sequelize),
+  HealthStatus: require("./healthcheck")(sequelize, Sequelize),
   File: require("./file")(sequelize, Sequelize),
 };
 

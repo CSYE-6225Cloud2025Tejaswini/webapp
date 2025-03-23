@@ -13,8 +13,6 @@ echo "Installing Node.js runtime..."
 curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
 sudo apt-get install -y nodejs
 
-# No MySQL installation needed - using RDS for database
-
 # Create application user
 useradd -m -s /bin/bash webapp || echo "User already exists"
 
@@ -27,12 +25,27 @@ cd /opt/webapp
 rm -rf /opt/webapp/*
 unzip -o /tmp/application.zip -d /opt/webapp/
 
-# Move environment file
-mv /tmp/.env /opt/webapp/
+# Create environment file with database credentials from RDS
+cat > /opt/webapp/.env << EOF
+# Database Credentials (passed from RDS)
+DB_HOST=${db_host}
+DB_USER=${db_username}
+DB_PASSWORD=${db_password}
+DB_NAME=${db_name}
+DB_PORT=${db_port}
+
+# S3 Configuration
+S3_BUCKET=${s3_bucket_name}
+AWS_REGION=${aws_region}
+
+# Application Port 
+PORT=8080
+EOF
 
 # Set the correct permissions
 chown -R webapp:webapp /opt/webapp
 chmod -R 755 /opt/webapp
+chmod 600 /opt/webapp/.env
 
 # Install application dependencies
 echo "Fetching application dependencies..."
@@ -64,9 +77,6 @@ EOF
 
 # Set proper permissions for systemd service file
 chmod 644 /etc/systemd/system/webapp.service
-
-# No local MySQL configuration needed - using RDS for database
-echo "RDS will be used for database functionality"
 
 # Enable and start the service
 echo "Starting web application service..."
