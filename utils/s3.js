@@ -77,8 +77,8 @@ async function deletingFileFromS3(fileUrl) {
 }
 
 module.exports = {
-  uploadFile: uploadFileToS3,
-  deletingFile: deletingFileFromS3,
+  uploadFileToS3: uploadFileToS3,
+  deletingFileFromS3: deletingFileFromS3,
   s3,
   bucketName,
 };

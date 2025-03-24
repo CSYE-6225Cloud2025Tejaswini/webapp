@@ -1,10 +1,10 @@
 const { File } = require("../models");
 const { uploadFileToS3, deletingFileFromS3 } = require("../utils/s3");
-const { setCommonHeaders } = require("../utils/headers");
+const { applyHeaders } = require("../utils/headers");
 
 class FileController {
   static async uploadFile(req, res) {
-    setCommonHeaders(res);
+    applyHeaders(res);
     try {
 
       if (!req.file) {
