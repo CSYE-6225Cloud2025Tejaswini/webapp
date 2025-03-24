@@ -8,7 +8,7 @@ AWS.config.update({ region: process.env.AWS_REGION || "us-east-1" });
 const s3 = new AWS.S3();
 const bucketName = process.env.S3_BUCKET;
 
-async function uploadFile(fileBuffer, fileName) {
+async function uploadFileToS3(fileBuffer, fileName) {
   try {
     if (!bucketName) {
       throw new Error("S3 bucket name is not defined in environment variables");
@@ -42,7 +42,7 @@ async function uploadFile(fileBuffer, fileName) {
   }
 }
 
-async function deletingFile(fileUrl) {
+async function deletingFileFromS3(fileUrl) {
   try {
     if (!bucketName) {
       throw new Error("S3 bucket name is not defined in environment variables");
@@ -77,8 +77,8 @@ async function deletingFile(fileUrl) {
 }
 
 module.exports = {
-  uploadFile,
-  deletingFile,
+  uploadFile: uploadFileToS3,
+  deletingFile: deletingFileFromS3,
   s3,
   bucketName,
 };

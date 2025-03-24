@@ -1,5 +1,5 @@
 const { File } = require("../models");
-const { uploadFile, deletingFile } = require("../utils/s3");
+const { uploadFileToS3, deletingFileFromS3 } = require("../utils/s3");
 const { setCommonHeaders } = require("../utils/headers");
 
 class FileController {
@@ -10,7 +10,7 @@ class FileController {
       if (!req.file) {
         return res.status(400).json({ error: "Bad Request" });
       }
-      const fileInformation = await uploadFile(req.file.buffer, req.file.originalname);
+      const fileInformation = await uploadFileToS3(req.file.buffer, req.file.originalname);
 
       const newFile = await File.create({
         id: fileInformation.id,
@@ -60,7 +60,7 @@ class FileController {
       if (!file) {
         return res.status(404).json({ error: "Not Found" });
       }
-      await deletingFile(file.url);
+      await deletingFileFromS3(file.url);
       await file.destroy();
       return res.status(204).end();
     } catch (error) {
@@ -71,3 +71,5 @@ class FileController {
 }
 
 module.exports = FileController;
+
+ 
