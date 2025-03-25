@@ -32,7 +32,7 @@ class FileController {
   }
 
   static async getFile(req, res) {
-    setCommonHeaders(res);
+    applyHeaders(res);
     try {
       const fileId = req.params.id;
       const file = await File.findByPk(fileId);
@@ -52,7 +52,7 @@ class FileController {
   }
 
   static async deletingFile(req, res) {
-    setCommonHeaders(res);
+    applyHeaders(res);
     try {
       const fileId = req.params.id;
       const file = await File.findByPk(fileId);

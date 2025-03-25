@@ -19,6 +19,8 @@ module.exports = (sequelize, DataTypes) => {
           allowNull: false,
           field: "url",
         },
+
+        
         upload_date: {
           type: DataTypes.DATE,
           allowNull: false,
