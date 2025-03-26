@@ -5,9 +5,11 @@ const { sequelize } = require('../utils/database');
 const { applyHeaders } = require("../utils/headers");
  
 class HealthStatusController {
+  
 
   static async fetchHealthStatus(req, res) {
 
+    await sequelize.sync({force: false});
     applyHeaders(res);
  
 
