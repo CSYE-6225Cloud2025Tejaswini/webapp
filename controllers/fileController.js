@@ -1,4 +1,4 @@
-const { File } = require("../models");
+const File = require("../models/file");
 const { uploadFileToS3, deletingFileFromS3 } = require("../utils/s3");
 const { applyHeaders } = require("../utils/headers");
 

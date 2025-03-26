@@ -1,11 +1,11 @@
 const app = require("./app");
-const { initializeDatabase, sequelize } = require("./utils/database");
+const { connectToDatabase, sequelize } = require("./utils/database");
 const PORT = 8080;
  
 async function launchServer() {
   try {
     // Ensure the database is initialized and synchronized
-    await initializeDatabase();
+    await connectToDatabase();
     await sequelize.sync({force: false});
     console.log("Database initialized and synchronized successfully");
  

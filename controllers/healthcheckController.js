@@ -1,4 +1,6 @@
-const { HealthStatus, sequelize } = require("../models");
+const HealthCheck= require("../models/healthcheck")
+const { sequelize } = require('../utils/database');
+
 
 const { applyHeaders } = require("../utils/headers");
  
@@ -45,7 +47,7 @@ class HealthStatusController {
 
       await sequelize.authenticate();
 
-      await HealthStatus.create({
+      await HealthCheck.create({
 
         timestamp: new Date(),
 

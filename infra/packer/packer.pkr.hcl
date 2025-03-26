@@ -147,11 +147,11 @@ build {
     generated   = true
   }
 
-  provisioner "file" {
-    source      = "/tmp/.env"
-    destination = "/tmp/.env"
-    generated   = true
-  }
+  # provisioner "file" {
+  #   source      = "/tmp/.env"
+  #   destination = "/tmp/.env"
+  #   generated   = true
+  # }
 
   # Execute the installation script
   provisioner "shell" {
