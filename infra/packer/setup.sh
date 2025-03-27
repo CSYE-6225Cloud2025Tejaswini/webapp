@@ -32,16 +32,16 @@ sudo mkdir -p /opt/myapp
 sudo mv /tmp/webapp /opt/myapp/webapp
 sudo chmod +x /opt/myapp/webapp
 
-echo "Creating .env file..."
-cat <<EOF | sudo tee /opt/myapp/.env > /dev/null
-DB_URL=mysql://root:Pass1234@localhost:3306/healthcheck_db
-DB_NAME=healthcheck_db
-DB_USER=root
-DB_PASSWORD=Welcome@1234!!
-DB_HOST=localhost
-PORT=8080
-DB_PORT=3306
-EOF
+# echo "Creating .env file..."
+# cat <<EOF | sudo tee /opt/myapp/.env > /dev/null
+# DB_URL=mysql://root:Pass1234@localhost:3306/healthcheck_db
+# DB_NAME=healthcheck_db
+# DB_USER=root
+# DB_PASSWORD=Welcome@1234!!
+# DB_HOST=localhost
+# PORT=8080
+# DB_PORT=3306
+# EOF
 
 sudo chmod 600 /opt/myapp/.env
 
