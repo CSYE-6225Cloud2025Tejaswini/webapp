@@ -13,6 +13,8 @@ echo "Installing Node.js runtime..."
 curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
 sudo apt-get install -y nodejs
 
+# No MySQL installation needed - using RDS for database
+
 # Create application user
 useradd -m -s /bin/bash webapp || echo "User already exists"
 
@@ -62,6 +64,9 @@ EOF
 
 # Set proper permissions for systemd service file
 chmod 644 /etc/systemd/system/webapp.service
+
+# No local MySQL configuration needed - using RDS for database
+echo "RDS will be used for database functionality"
 
 # Enable and start the service
 echo "Starting web application service..."
