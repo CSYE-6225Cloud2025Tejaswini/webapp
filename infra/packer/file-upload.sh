@@ -13,6 +13,12 @@ echo "Installing Node.js runtime..."
 curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
 sudo apt-get install -y nodejs
 
+# Install CloudWatch Agent
+echo "Installing CloudWatch Agent..."
+wget https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+sudo dpkg -i -E amazon-cloudwatch-agent.deb
+rm amazon-cloudwatch-agent.deb
+
 # Create application user
 useradd -m -s /bin/bash webapp || echo "User already exists"
 
@@ -21,9 +27,57 @@ echo "Setting up application directory..."
 mkdir -p /opt/webapp
 cd /opt/webapp
 
+# Create log directory for application
+sudo mkdir -p /var/log/webapp
+sudo chown webapp:webapp /var/log/webapp
+sudo chmod 755 /var/log/webapp
+
 # Extract the uploaded zip file
 rm -rf /opt/webapp/*
 unzip -o /tmp/application.zip -d /opt/webapp/
+
+# Create CloudWatch agent configuration
+cat > /opt/webapp/cloudwatch-config.json << EOF
+{
+  "agent": {
+    "metrics_collection_interval": 10,
+    "run_as_user": "webapp"
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/webapp/application.log",
+            "log_group_name": "webapp-logs",
+            "log_stream_name": "{instance_id}-application",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/var/log/syslog",
+            "log_group_name": "webapp-system-logs",
+            "log_stream_name": "{instance_id}-syslog",
+            "retention_in_days": 7
+          }
+        ]
+      }
+    }
+  },
+  "metrics": {
+    "metrics_collected": {
+      "statsd": {
+        "service_address": ":8125",
+        "metrics_collection_interval": 10,
+        "metrics_aggregation_interval": 60
+      }
+    }
+  }
+}
+EOF
+
+# Set up CloudWatch agent configuration
+sudo mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
+sudo cp /opt/webapp/cloudwatch-config.json /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
 
 # Create environment file with database credentials from RDS
 cat > /opt/webapp/.env << EOF
@@ -77,6 +131,11 @@ EOF
 
 # Set proper permissions for systemd service file
 chmod 644 /etc/systemd/system/webapp.service
+
+# Start CloudWatch Agent
+echo "Starting CloudWatch agent..."
+sudo systemctl enable amazon-cloudwatch-agent
+sudo systemctl start amazon-cloudwatch-agent
 
 # Enable and start the service
 echo "Starting web application service..."
