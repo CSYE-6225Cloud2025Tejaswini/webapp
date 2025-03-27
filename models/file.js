@@ -1,5 +1,10 @@
-module.exports = (sequelize, DataTypes) => {
-    const File = sequelize.define(
+// Import the required DataTypes from Sequelize
+const { DataTypes } = require('sequelize');
+
+// Import the Sequelize instance from the database configuration
+const { sequelize } = require('../utils/database');
+
+const File = sequelize.define(
       "File",
       {
         id: {
@@ -19,6 +24,8 @@ module.exports = (sequelize, DataTypes) => {
           allowNull: false,
           field: "url",
         },
+
+        
         upload_date: {
           type: DataTypes.DATE,
           allowNull: false,
@@ -31,7 +38,6 @@ module.exports = (sequelize, DataTypes) => {
         timestamps: false,
       }
     );
-  
-    return File;
-  };
+
+    module.exports = File;
   

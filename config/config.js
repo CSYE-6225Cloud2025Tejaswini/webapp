@@ -17,7 +17,7 @@ require("dotenv").config({
     development: {
         url: process.env.DB_URL,
         dialect: "mysql",
-      logging: false,
+        logging: false,
     },
     test: {
       url: process.env.DATABASE_URL,

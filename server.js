@@ -1,22 +1,25 @@
+// server.js - modify your existing file
 const app = require("./app");
-const { initializeDatabase, sequelize } = require("./utils/database");
-const PORT = 8080;
- 
+const { connectToDatabase, sequelize } = require("./utils/database");
+const logger = require('./utils/logger');
+const PORT = process.env.PORT || 8080;
+
 async function launchServer() {
   try {
     // Ensure the database is initialized and synchronized
-    await initializeDatabase();
+    logger.info("Initializing database connection...");
+    await connectToDatabase();
     await sequelize.sync({force: false});
-    console.log("Database initialized and synchronized successfully");
- 
+    logger.info("Database initialized and synchronized successfully");
+
     // Start the Express server
     app.listen(PORT, () => {
-      console.log(`Application is live on port ${PORT}`);
+      logger.info(`Application is live on port ${PORT}`);
     });
   } catch (err) {
-    console.error("Server startup failed:", err);
+    logger.error(`Server startup failed: ${err.message}`, { error: err });
     process.exit(1);
   }
 }
- 
+
 launchServer();
