@@ -25,27 +25,12 @@ cd /opt/webapp
 rm -rf /opt/webapp/*
 unzip -o /tmp/application.zip -d /opt/webapp/
 
-# Create environment file with database credentials from RDS
-cat > /opt/webapp/.env << EOF
-# Database Credentials (passed from RDS)
-DB_HOST=${db_host}
-DB_USER=${db_username}
-DB_PASSWORD=${db_password}
-DB_NAME=${db_name}
-DB_PORT=${db_port}
-
-# S3 Configuration
-S3_BUCKET=${s3_bucket_name}
-AWS_REGION=${aws_region}
-
-# Application Port 
-PORT=8080
-EOF
+# Move environment file
+mv /tmp/.env /opt/webapp/
 
 # Set the correct permissions
 chown -R webapp:webapp /opt/webapp
 chmod -R 755 /opt/webapp
-chmod 600 /opt/webapp/.env
 
 # Install application dependencies
 echo "Fetching application dependencies..."
