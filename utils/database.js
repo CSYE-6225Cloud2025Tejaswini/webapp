@@ -1,58 +1,29 @@
-// utils/database.js - modify your existing file
+// Import Sequelize, an ORM for working with relational databases
 const { Sequelize } = require('sequelize');
+
+// Import dotenv to load environment variables from a .env file
 const dotenv = require('dotenv');
-const logger = require('./logger');
-const metrics = require('./metrics');
 
 dotenv.config();
 
-// Create a Sequelize instance with logging
-const sequelize = new Sequelize(
-  process.env.DB_NAME, 
-  process.env.DB_USER, 
-  process.env.DB_PASSWORD, 
-  {
+// Create a Sequelize instance to connect to the database
+const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
     host: process.env.DB_HOST,
     dialect: 'mysql',
-    logging: (sql) => {
-      logger.debug(`Executing SQL: ${sql}`);
-    },
-  }
-);
-
-// Modify Sequelize to track query performance
-const originalQuery = sequelize.query;
-sequelize.query = function(...args) {
-  const startTime = Date.now();
-  const result = originalQuery.apply(this, args);
-  
-  // Extract query type (SELECT, INSERT, etc.) from the first argument
-  const queryType = typeof args[0] === 'string' 
-    ? args[0].split(' ')[0].toLowerCase() 
-    : 'unknown';
-  
-  // Track the query in metrics
-  result.then(() => {
-    metrics.timeDbQuery(queryType, startTime);
-  }).catch(err => {
-    logger.error(`Database query error: ${err.message}`);
-  });
-  
-  return result;
-};
+    logging: false,       // Disable query logging for a cleaner console
+});
 
 // Function to connect to the database and test the connection
 const connectToDatabase = async () => {
-  try {
-    logger.info('Attempting to connect to the database...');
-    await sequelize.authenticate();
-    logger.info('Connection has been established successfully.');
-    await sequelize.sync();
-    logger.info('Database models synchronized successfully.');
-  } catch (error) {
-    logger.error(`Unable to connect to the database: ${error.message}`, { error });
-    throw error;
-  }
+    try {
+        await sequelize.authenticate();   // Test the database connection
+        console.log('Connection has been established successfully.');
+        await sequelize.sync();
+    } catch (error) {
+         // Log an error if the connection fails
+        console.error('Unable to connect to the database:', error);
+    }
 };
 
+// Export the Sequelize instance and the connection function
 module.exports = { sequelize, connectToDatabase };
