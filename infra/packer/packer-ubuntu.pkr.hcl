@@ -23,12 +23,12 @@ variable "ami_base" {
 }
 
 variable "vpc_identifier" {
-  description = "VPC where instance will be launched"
+  description = "VPC where the instance will be launched"
   default     = ""
 }
 
 variable "subnet_identifier" {
-  description = "Subnet where instance will be launched"
+  description = "Subnet where the instance will be launched"
   default     = ""
 }
 
@@ -147,15 +147,17 @@ build {
     generated   = true
   }
 
-  # provisioner "file" {
-  #   source      = "/tmp/.env"
-  #   destination = "/tmp/.env"
-  #   generated   = true
-  # }
+  provisioner "file" {
+    source      = "/tmp/.env"
+    destination = "/tmp/.env"
+    generated   = true
+  }
+
+  # Webapp service file is created directly in user-data.sh
 
   # Execute the installation script
   provisioner "shell" {
-    script          = "file-upload.sh"
+    script          = "user-data.sh"
     execute_command = "chmod +x {{ .Path }}; sudo {{ .Path }}"
   }
 }

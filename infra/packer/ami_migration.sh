@@ -1,97 +1,123 @@
 #!/bin/bash
 
-# Get AWS credentials from environment variables
-SOURCE_AWS_ACCESS_KEY="${DEV_AWS_ACCESS_KEY_ID}"
-SOURCE_AWS_SECRET_KEY="${DEV_AWS_SECRET_ACCESS_KEY}"
-TARGET_AWS_ACCESS_KEY="${DEMO_AWS_ACCESS_KEY_ID}"
-TARGET_AWS_SECRET_KEY="${DEMO_AWS_SECRET_ACCESS_KEY}"
+# Fetch AWS authentication details from environment
+SRC_AWS_KEY="${DEV_AWS_ACCESS_KEY_ID}"
+SRC_AWS_SECRET="${DEV_AWS_SECRET_ACCESS_KEY}"
+DEST_AWS_KEY="${DEMO_AWS_ACCESS_KEY_ID}"
+DEST_AWS_SECRET="${DEMO_AWS_SECRET_ACCESS_KEY}"
+DEST_ACCOUNT_ID="${DEMO_ACCOUNT_ID}"
 
 # Input Region Details
-AWS_REGION="us-east-1"
-NEW_AMI_NAME="Copied-custom-nodejs-mysql-$(date +%Y%m%d-%H%M%S)"
+CLOUD_REGION="us-east-1"
+DUPLICATED_AMI_NAME="Copied-custom-nodejs-mysql-$(date +%Y%m%d-%H%M%S)"
 
 # Set AWS CLI Profiles for Both Accounts
-aws configure set aws_access_key_id $SOURCE_AWS_ACCESS_KEY --profile source-account
-aws configure set aws_secret_access_key $SOURCE_AWS_SECRET_KEY --profile source-account
-aws configure set region $AWS_REGION --profile source-account
+aws configure set aws_access_key_id $SRC_AWS_KEY --profile source-account
+aws configure set aws_secret_access_key $SRC_AWS_SECRET --profile source-account
+aws configure set region $CLOUD_REGION --profile source-account
 
-aws configure set aws_access_key_id $TARGET_AWS_ACCESS_KEY --profile target-account
-aws configure set aws_secret_access_key $TARGET_AWS_SECRET_KEY --profile target-account
-aws configure set region $AWS_REGION --profile target-account
+aws configure set aws_access_key_id $DEST_AWS_KEY --profile target-account
+aws configure set aws_secret_access_key $DEST_AWS_SECRET --profile target-account
+aws configure set region $CLOUD_REGION --profile target-account
 
 echo "AWS CLI Profiles Configured"
 
-# Get Source Account ID
+# Retrieve ID for source AWS account
 echo "Getting source account ID..."
-SOURCE_ACCOUNT_ID=$(aws sts get-caller-identity \
+SRC_ACCOUNT_ID=$(aws sts get-caller-identity \
     --profile source-account \
     --query 'Account' \
     --output text)
-echo "Source Account ID: $SOURCE_ACCOUNT_ID"
+echo "Source Account ID: $SRC_ACCOUNT_ID"
 
-# Get latest AMI with the name pattern used in packer build
+# Identify latest AMI matching defined naming convention
 echo "Getting latest AMI ID..."
-SOURCE_AMI_ID=$(aws ec2 describe-images \
+SRC_AMI_ID=$(aws ec2 describe-images \
     --profile source-account \
-    --owners $SOURCE_ACCOUNT_ID \
-    --filters "Name=name,Values=custom-nodejs-mysql-*" \
+    --owners $SRC_ACCOUNT_ID \
+    --filters "Name=name,Values=custom-ubuntu-image*" \
     --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
     --output text)
-echo "Found latest AMI: $SOURCE_AMI_ID"
 
-# Get Target Account ID
-echo "🔍 Getting target account ID..."
-TARGET_ACCOUNT_ID=$(aws sts get-caller-identity \
-    --profile target-account \
-    --query 'Account' \
-    --output text)
-echo "Target Account ID: $TARGET_ACCOUNT_ID"
+if [ -z "$SRC_AMI_ID" ]; then
+    echo "❌ No AMI found with name prefix 'custom-ubuntu-image'. Exiting."
+    exit 1
+fi
 
-# 1️⃣ Share the AMI with the Target Account
-echo "Sharing AMI ($SOURCE_AMI_ID) with target account ($TARGET_ACCOUNT_ID)..."
+echo "Found latest AMI: $SRC_AMI_ID"
+
+echo "Target Account ID (from environment): $DEST_ACCOUNT_ID"
+
+# Share the AMI with the Target Account
+echo "Sharing AMI ($SRC_AMI_ID) with target account ($DEST_ACCOUNT_ID)..."
 aws ec2 modify-image-attribute \
     --profile source-account \
-    --image-id $SOURCE_AMI_ID \
-    --launch-permission "Add=[{UserId=$TARGET_ACCOUNT_ID}]" \
-    --region $AWS_REGION
+    --image-id $SRC_AMI_ID \
+    --launch-permission "Add=[{UserId=$DEST_ACCOUNT_ID}]" \
+    --region $CLOUD_REGION
 
-# 2️⃣ Get the Snapshot ID of the AMI
-echo "Fetching Snapshot ID..."
-SNAPSHOT_ID=$(aws ec2 describe-images \
+# Get the Snapshot ID of the AMI
+echo "Fetching Snapshot IDs..."
+AMI_SNAPSHOT_IDS=$(aws ec2 describe-images \
     --profile source-account \
-    --image-ids $SOURCE_AMI_ID \
-    --region $AWS_REGION \
-    --query 'Images[0].BlockDeviceMappings[0].Ebs.SnapshotId' \
+    --image-ids $SRC_AMI_ID \
+    --region $CLOUD_REGION \
+    --query 'Images[0].BlockDeviceMappings[*].Ebs.SnapshotId' \
     --output text)
 
-echo "Found Snapshot ID: $SNAPSHOT_ID"
+for AMI_SNAPSHOT_ID in $AMI_SNAPSHOT_IDS; do
+    echo "Found Snapshot ID: $AMI_SNAPSHOT_ID"
+    
+    # Allow target account access to snapshot for AMI duplication
+    echo "Sharing Snapshot ($AMI_SNAPSHOT_ID) with target account ($DEST_ACCOUNT_ID)..."
+    aws ec2 modify-snapshot-attribute \
+        --profile source-account \
+        --snapshot-id $AMI_SNAPSHOT_ID \
+        --attribute createVolumePermission \
+        --operation-type add \
+        --user-ids $DEST_ACCOUNT_ID \
+        --region $CLOUD_REGION
+done
 
-# 3️⃣ Share the Snapshot with the Target Account
-echo "Sharing Snapshot ($SNAPSHOT_ID) with target account ($TARGET_ACCOUNT_ID)..."
-aws ec2 modify-snapshot-attribute \
-    --profile source-account \
-    --snapshot-id $SNAPSHOT_ID \
-    --attribute createVolumePermission \
-    --operation-type add \
-    --user-ids $TARGET_ACCOUNT_ID \
-    --region $AWS_REGION
-
-# 4️⃣ Copy the AMI to the Target Account
+# Create a duplicate AMI within target AWS account
 echo "Copying AMI to target account..."
-TARGET_AMI_ID=$(aws ec2 copy-image \
+DEST_AMI_ID=$(aws ec2 copy-image \
     --profile target-account \
-    --source-image-id $SOURCE_AMI_ID \
-    --source-region $AWS_REGION \
-    --region $AWS_REGION \
-    --name "$NEW_AMI_NAME" \
+    --source-image-id $SRC_AMI_ID \
+    --source-region $CLOUD_REGION \
+    --region $CLOUD_REGION \
+    --name "$DUPLICATED_AMI_NAME" \
     --query 'ImageId' --output text)
 
-echo "AMI Copy Started: $TARGET_AMI_ID"
+echo "AMI Copy Started: $DEST_AMI_ID"
 
-# 5️⃣ Wait for AMI to be Available
-echo "⏳ Waiting for AMI ($TARGET_AMI_ID) to be available..."
-aws ec2 wait image-available --profile target-account --image-ids $TARGET_AMI_ID --region $AWS_REGION
+# Wait for AMI to be Available
+echo "⏳ Waiting for AMI ($DEST_AMI_ID) to be available..."
+WAIT_TIME=30
+MAX_RETRIES=20
+retry=0
 
-echo "AMI ($TARGET_AMI_ID) is now available in target account!"
+while [ $retry -lt $MAX_RETRIES ]; do
+    AMI_STATE=$(aws ec2 describe-images \
+        --profile target-account \
+        --image-ids $DEST_AMI_ID \
+        --region $CLOUD_REGION \
+        --query 'Images[0].State' \
+        --output text 2>/dev/null)
+    
+    if [ "$AMI_STATE" = "available" ]; then
+        echo "✅ AMI ($DEST_AMI_ID) is now available in target account!"
+        break
+    fi
+    
+    echo "AMI state: $AMI_STATE. Waiting for $WAIT_TIME seconds... (Attempt $((retry+1))/$MAX_RETRIES)"
+    sleep $WAIT_TIME
+    ((retry++))
+done
 
-echo "Migration Complete!"
+if [ $retry -eq $MAX_RETRIES ]; then
+    echo "❌ Timed out waiting for AMI to become available."
+    exit 1
+fi
+
+echo "✅ AMI Migration Complete!"

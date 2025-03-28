@@ -12,13 +12,13 @@ const upload = multer({
   },
 });
 
-// File upload route
-router.post("/v1/file", upload.single("LOGO"), FileController.uploadFile);
+// File upload  route
+router.post("/v1/file", upload.single("profilePic"), FileController.uploadFile);
 
 // Get file by ID route
 router.get("/v1/file/:id", FileController.getFile);
 
 // Delete file by ID route
-router.delete("/v1/file/:id", FileController.deletingFile);
+router.delete("/v1/file/:id", FileController.deleteFile);
 
 module.exports = router;

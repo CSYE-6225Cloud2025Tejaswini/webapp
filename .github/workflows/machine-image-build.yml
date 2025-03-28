@@ -1,13 +1,14 @@
-name: Build then share Machine Images
+name: Build and Share Machine Images
 
 on:
   pull_request:
     branches:
       - main
 
+# Only run if the PR is merged
 jobs:
   machine_image_build:
-    name: Build then share Machine Images
+    name: Build and Share Machine Images
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -18,23 +19,30 @@ jobs:
         with:
           version: "1.8.5"
 
+      # Initialize Packer plugins - this is the key addition
       - name: Initialize Packer Plugins
         run: |
           cd infra/packer
-          packer init packer.pkr.hcl
+          packer init packer-ubuntu.pkr.hcl
 
-      - name: Validate the packer template
+      - name: Validate Packer template
         run: |
           cd infra/packer
-          packer validate packer.pkr.hcl
+          packer validate packer-ubuntu.pkr.hcl
 
       - name: Setup application artifacts
         run: |
+          # Create a temporary directory for zip creation
           mkdir -p /tmp/webapp-build
+
+          # Copy all application files to the temporary directory
           cp -r models utils routes config controllers *.js package.json /tmp/webapp-build/
+
+          # Navigate to the temporary directory and create the zip
           cd /tmp/webapp-build
           zip -r /tmp/application.zip .
 
+          #{db_host} should point to the RDS instance
           echo "DB_HOST=${db_host}" > /tmp/.env  
           echo "DB_PORT=3306" >> /tmp/.env
           echo "DB_USER=csye6225" >> /tmp/.env
@@ -46,8 +54,14 @@ jobs:
           echo "NODE_ENV=production" >> /tmp/.env
 
           chmod 644 /tmp/application.zip /tmp/.env
+
+          # Verify files exist
+          ls -la /tmp/application.zip
+          ls -la /tmp/.env
+
           unzip -l /tmp/application.zip
 
+      # Configure AWS DEV Credentials
       - name: Configure AWS DEV Credentials
         run: |
           echo "Setting up AWS DEV credentials..."
@@ -55,18 +69,20 @@ jobs:
           echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
           echo "AWS_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
 
+      # Build AMI in DEV account only
       - name: Build Machine Image in DEV account
         run: |
           cd infra/packer
           packer build -var "vpc_identifier=${{ secrets.VPC_IDENTIFIER_DEV }}" \
-             -var "subnet_identifier=subnet-0c534d1c7ad49c587" \
+             -var "subnet_identifier=${{ secrets.SUBNET_IDENTIFIER_DEV }}" \
              -var "demo_account_id=${{ secrets.DEMO_ACCOUNT_ID }}" \
              -var "db_host=${{ secrets.DB_HOST }}" \
              -var "db_password=${{ secrets.DB_PASSWORD }}" \
              -var "s3_bucket=${{ secrets.S3_BUCKET }}" \
              -only=amazon-ebs.ubuntu_image \
-             packer.pkr.hcl
+             packer-ubuntu.pkr.hcl
 
+      # Share AMI with DEMO account
       - name: Share AMI with DEMO account
         env:
           DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
@@ -78,8 +94,3 @@ jobs:
           cd infra/packer
           chmod +x ami_migration.sh
           ./ami_migration.sh
-
-      - name: Clean Up Credentials
-        if: always()
-        run: |
-          rm -f gcp-dev-credentials.json gcp-demo-credentials.json
