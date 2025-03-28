@@ -75,7 +75,7 @@ jobs:
           cd infra/packer
           packer build -var "vpc_identifier=${{ secrets.VPC_IDENTIFIER_DEV }}" \
              -var "subnet_identifier=${{ secrets.SUBNET_IDENTIFIER_DEV }}" \
-             -var "demo_account_id=${{ secrets.DEMO_ACCOUNT_ID }}" \
+             -var "demo_account_id=${{ secrets.DEMO_ACCOUNT_ID_PKR }}" \
              -var "db_host=${{ secrets.DB_HOST }}" \
              -var "db_password=${{ secrets.DB_PASSWORD }}" \
              -var "s3_bucket=${{ secrets.S3_BUCKET }}" \
