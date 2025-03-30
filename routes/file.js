@@ -13,7 +13,7 @@ const upload = multer({
 });
 
 // File upload  route
-router.post("/v1/file", upload.single("LOGO"), FileController.uploadFile);
+router.post("/v1/file", upload.single("Image"), FileController.uploadFile);
 
 // Get file by ID route
 router.get("/v1/file/:id", FileController.getFile);
