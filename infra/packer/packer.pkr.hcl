@@ -153,11 +153,11 @@ build {
     generated   = true
   }
 
-  # Webapp service file is created directly in user-data.sh
+  # Webapp service file is created directly in userdata.sh
 
   # Execute the installation script
   provisioner "shell" {
-    script          = "user-data.sh"
+    script          = "userdata.sh"
     execute_command = "chmod +x {{ .Path }}; sudo {{ .Path }}"
   }
 }
