@@ -1,58 +1,93 @@
-// app.js - modify your existing file
-require("dotenv").config();
+require("dotenv").config(); // Load environment variables
+
 const express = require("express");
-const healthRoutes = require("./routes/healthcheck");
-const { applyHeaders } = require("./utils/headers");
+const { sequelize } = require("./models");
+const healthcheckRoutes = require("./routes/healthcheck");
 const fileRoutes = require("./routes/file");
-const { requestLogger, errorHandler } = require('./utils/middleware');
-const logger = require('./utils/logger');
+const { createDatabaseIfNotExists } = require("./utils/database");
+const { setCommonHeaders } = require("./utils/headers");
+const logger = require("./utils/logger");
+const metrics = require("./utils/metrics");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Add request logging middleware
-app.use(requestLogger);
+// ---------------------------------------------
+// Request Logging Middleware
+// Logs method, path, IP, and response time
+// ---------------------------------------------
+app.use((req, res, next) => {
+  const startTime = process.hrtime();
 
-// Middleware to handle JSON payloads with error handling
+  logger.info(`Incoming request: ${req.method} ${req.originalUrl}`, {
+    method: req.method,
+    path: req.originalUrl,
+    ip: req.ip,
+    userAgent: req.get("User-Agent"),
+  });
+
+  res.on("finish", () => {
+    const diff = process.hrtime(startTime);
+    const responseTime = diff[0] * 1000 + diff[1] / 1e6;
+    logger.info(`Request completed: ${req.method} ${req.originalUrl}`, {
+      method: req.method,
+      path: req.originalUrl,
+      statusCode: res.statusCode,
+      responseTime,
+    });
+  });
+
+  next();
+});
+
+// --------------------------------------------------
+// JSON Parsing Middleware with Validation
+// Prevents invalid JSON payloads from crashing the app
+// --------------------------------------------------
 app.use(
   express.json({
     verify: (req, res, buf) => {
-      if (buf.length) {
+      if (buf.length > 0) {
         try {
-          JSON.parse(buf);
-        } catch {
-          logger.error("Invalid JSON payload received");
-          res.status(400).send("Invalid JSON");
-          throw new Error("Invalid JSON payload");
+          JSON.parse(buf); // Validate JSON manually
+        } catch (e) {
+          logger.error(`Invalid JSON received: ${e.message}`);
+          res.status(400).end();
+          throw new Error("Invalid JSON");
         }
       }
     },
   })
 );
 
-// Mount health check routes
-app.use("/", healthRoutes);
-app.use("/", fileRoutes);
+// --------------------
+// Route Registrations
+// --------------------
+app.use("/", healthcheckRoutes); // Healthcheck route
+app.use("/", fileRoutes);        // File upload/retrieve/delete routes
 
-// Handle unknown routes
+// --------------------
+// 404 Handler
+// --------------------
 app.use((req, res) => {
-  logger.warn(`Route not found: ${req.method} ${req.path}`);
-  applyHeaders(res);
-  res.status(404).send("Not Found");
+  logger.warn(`404 Not Found: ${req.method} ${req.originalUrl}`);
+  metrics.countApiCall("notFound");
+  setCommonHeaders(res);
+  res.status(404).end();
 });
 
-// Error handling middleware
-app.use(errorHandler);
+// --------------------
+// Global Error Handler
+// --------------------
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400) {
+    logger.error(`Syntax Error: ${err.message}`, { error: err.stack });
+    return res.status(400).end();
+  }
 
-// Process termination handlers
-process.on('uncaughtException', (error) => {
-  logger.error(`Uncaught Exception: ${error.message}`, { error });
-  // Allow time for logs to be written before exiting
-  setTimeout(() => process.exit(1), 1000);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection at:', { promise, reason });
+  logger.error(`Server Error: ${err.message}`, { error: err.stack });
+  metrics.countApiCall("serverError");
+  return res.status(500).end();
 });
 
 module.exports = app;

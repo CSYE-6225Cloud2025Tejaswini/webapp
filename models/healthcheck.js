@@ -1,28 +1,29 @@
-// Import the required DataTypes from Sequelize
-const { DataTypes } = require('sequelize');
-
-// Import the Sequelize instance from the database configuration
-const { sequelize } = require('../utils/database');
-
-// Define the HealthCheck model
-// This model represents a table in the database named "HealthChecks"
-const HealthCheck = sequelize.define('HealthCheck', {
-    CheckId: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true,
-    },
-    // Define the DateTime column
-    // This stores the date and time of each health check in UTC
-    DateTime: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
-        allowNull: false,
-    },
-}, {
-    // Disable automatic creation of createdAt and updatedAt timestamps
-    timestamps: false,
-});
-
-// Export the HealthCheck model for use in other parts of the application
-module.exports = HealthCheck;
+module.exports = (sequelize, DataTypes) => {
+    const HealthCheck = sequelize.define(
+      "HealthCheck",
+      {
+        // Primary key: auto-incrementing integer ID for each health check entry
+        checkId: {
+          type: DataTypes.INTEGER,
+          primaryKey: true,
+          autoIncrement: true,
+          field: "check_id",
+        },
+  
+        // Timestamp of when the health check was recorded
+        datetime: {
+          type: DataTypes.DATE,
+          allowNull: false,
+          defaultValue: DataTypes.NOW,
+          field: "datetime",
+        },
+      },
+      {
+        tableName: "health_check", // Name of the database table
+        timestamps: false,         // Disable Sequelize's default timestamp fields
+      }
+    );
+  
+    return HealthCheck;
+  };
+  

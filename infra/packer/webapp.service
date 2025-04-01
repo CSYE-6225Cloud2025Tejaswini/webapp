@@ -1,15 +1,14 @@
 [Unit]
-Description=My Node.js Application
-After=network.target
-ConditionalPathExists=/opt/myapp/env/.env
+Description=Web Application Service
+After=network.target mysql.service
 
 [Service]
-ExecStart=/opt/myapp/webapp
+ExecStart=/usr/bin/node /opt/webapp/server.js
 Restart=always
-User=csye6225
-Group=csye6225
-EnvironmentFile=/opt/myapp/env/.env
-WorkingDirectory=/opt/myapp
+User=serviceuser
+Group=servicegroup
+EnvironmentFile=/opt/webapp/.env
+WorkingDirectory=/opt/webapp
 StandardOutput=journal
 StandardError=journal
 

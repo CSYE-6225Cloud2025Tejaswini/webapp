@@ -1,57 +1,89 @@
-// controllers/healthcheckController.js - modify your existing file
-const HealthCheck = require("../models/healthcheck");
-const { sequelize } = require('../utils/database');
-const { applyHeaders } = require("../utils/headers");
+const { HealthCheck, sequelize } = require("../models");
+const { setCommonHeaders } = require("../utils/headers");
 const logger = require("../utils/logger");
+const metrics = require("../utils/metrics");
 
-class HealthStatusController {
-  static async fetchHealthStatus(req, res) {
-    logger.info("Health check request received");
-    
-    await sequelize.sync({force: false});
-    applyHeaders(res);
-
-    if (Object.keys(req.query).length || Object.keys(req.body).length) {
-      logger.warn("Health check request rejected due to query parameters or body");
-      return res.status(400).end();
-    }
-
-    const defaultHeaders = [
-      "host", "user-agent", "accept", "connection", "content-type",
-      "content-length", "postman-token", "accept-encoding", "accept-language",
-    ];
-
-    const additionalHeaders = Object.keys(req.headers).filter(
-      (header) => !defaultHeaders.includes(header.toLowerCase())
-    );
-
-    if (additionalHeaders.length > 0) {
-      logger.warn(`Health check request rejected due to custom headers: ${additionalHeaders.join(', ')}`);
-      return res.status(400).end();
-    }
+class HealthcheckController {
+  // Handle GET /healthz request for health checks
+  static async getHealthCheck(req, res) {
+    const startTime = metrics.startApiTimer("healthCheck");
+    setCommonHeaders(res);
 
     try {
-      logger.info("Authenticating database connection");
-      await sequelize.authenticate();
-      
-      logger.info("Logging health check in database");
-      await HealthCheck.create({
-        timestamp: new Date(),
-      });
+      metrics.countApiCall("healthCheck");
+      logger.info("Health check request received");
+      // Reject request if any query parameters are present
+      if (Object.keys(req.query).length > 0) {
+        logger.warn("Health check attempted with query parameters");
+        metrics.endApiTimer("healthCheck", startTime);
+        return res.status(400).end();
+      }
+      // Reject request if body is not empty
+      if (Object.keys(req.body).length > 0) {
+        logger.warn("Health check attempted with request body");
+        metrics.endApiTimer("healthCheck", startTime);
+        return res.status(400).end();
+      }
+      // Allow only standard headers
+      const standardHeaders = [
+        "host",
+        "user-agent",
+        "accept",
+        "connection",
+        "content-type",
+        "content-length",
+        "postman-token",
+        "accept-encoding",
+        "accept-language",
+      ];
+      // Reject if any custom headers are included
+      const customHeaders = Object.keys(req.headers).filter(
+        (header) => !standardHeaders.includes(header.toLowerCase())
+      );
 
-      logger.info("Health check completed successfully");
+      if (customHeaders.length > 0) {
+        logger.warn(
+          `Health check attempted with custom headers: ${customHeaders.join(
+            ", "
+          )}`
+        );
+        metrics.endApiTimer("healthCheck", startTime);
+        return res.status(400).end();
+      }
+
+       // Attempt DB connection and record timestamp
+      const dbStartTime = process.hrtime();
+      await sequelize.authenticate();
+      await HealthCheck.create({
+        datetime: new Date(),
+      });
+      const dbDiff = process.hrtime(dbStartTime);
+      const dbTimeMs = dbDiff[0] * 1000 + dbDiff[1] / 1000000;
+      metrics.recordDbQueryTime("healthCheckDb", dbTimeMs);
+      // Log success and respond with HTTP 200
+      const responseTime = metrics.endApiTimer("healthCheck", startTime);
+      logger.info(`Health check successful, response time: ${responseTime}ms`);
+
       return res.status(200).end();
-    } catch (err) {
-      logger.error(`Health check failed: ${err.message}`, { error: err });
+    } catch (error) {
+      // Log and return HTTP 503 on failure
+
+      logger.error(`Health check failed: ${error.message}`, {
+        error: error.stack,
+      });
+      metrics.endApiTimer("healthCheck", startTime);
       return res.status(503).end();
     }
   }
-
-  static unsupportedMethods(req, res) {
-    logger.warn(`Unsupported HTTP method for health check: ${req.method}`);
-    applyHeaders(res);
-    res.status(405).end();
+  // Handle unsupported HTTP methods for health check route
+  static handleUnsupportedMethods(req, res) {
+    metrics.countApiCall("unsupportedMethod");
+    setCommonHeaders(res);
+    logger.warn(
+      `Unsupported method ${req.method} requested for path: ${req.path}`
+    );
+    res.status(405).end(); // Method Not Allowed
   }
 }
 
-module.exports = HealthStatusController;
+module.exports = HealthcheckController;

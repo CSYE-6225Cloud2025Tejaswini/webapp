@@ -1,61 +1,109 @@
 #!/bin/bash
 
-# Define MySQL root password
-MYSQL_ROOT_PASSWORD="Welcome@1234!!"
+# Refresh system package information and upgrade installed packages
+sudo apt update -y
+sudo apt upgrade -y
 
-echo "Creating non-login user csye6225..."
-sudo groupadd -f csye6225
-sudo useradd -r -M -g csye6225 -s /usr/sbin/nologin csye6225
+# ------------------------
+# Install and Setup MySQL
+# ------------------------
+echo "Setting up MySQL..."
 
-echo "Updating system and installing dependencies..."
-sudo apt-get update -y
+# Install required tools for MySQL repo configuration
+sudo apt-get install -y gnupg curl
+
+# Add MySQL GPG key
+curl -fsSL https://repo.mysql.com/RPM-GPG-KEY-mysql-2022 | sudo gpg --dearmor -o /usr/share/keyrings/mysql-keyring.gpg
+
+# Update package list and install MySQL server
+sudo apt-get update
 sudo apt-get install -y mysql-server
 
-echo "Setting up MySQL..."
-sudo systemctl enable mysql
+# Enable and start MySQL service
 sudo systemctl start mysql
+sudo systemctl enable mysql
 
-# Secure MySQL Installation
-secure_mysql() {
-    echo "Securing MySQL installation..."
-    sudo mysql <<EOF
-ALTER USER 'root'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY '$MYSQL_ROOT_PASSWORD';
-DELETE FROM mysql.user WHERE User='';
-DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
-FLUSH PRIVILEGES;
-EOF
-}
-secure_mysql
+# -------------------------
+# Install Unzip Utility
+# -------------------------
+sudo apt install unzip -y
 
-echo "Creating application directory..."
-sudo mkdir -p /opt/myapp
-sudo mv /tmp/webapp /opt/myapp/webapp
-sudo chmod +x /opt/myapp/webapp
+# -----------------------------
+# Deploy Node.js Web Service
+# -----------------------------
+# Move systemd service unit file into place
+sudo mv /tmp/webapp.service /etc/systemd/system
 
-echo "Creating .env file..."
-cat <<EOF | sudo tee /opt/myapp/.env > /dev/null
-DB_URL=mysql://root:Pass1234@localhost:3306/healthcheck_db
-DB_NAME=healthcheck_db
-DB_USER=root
-DB_PASSWORD=Welcome@1234!!
-DB_HOST=localhost
-PORT=8080
-DB_PORT=3306
-EOF
+# Clean any previous application files
+sudo rm -rf /opt/webapp/*
 
-sudo chmod 600 /opt/myapp/.env
+# Extract new application code to the deployment directory
+sudo unzip /tmp/application.zip -d /opt/webapp
 
-echo "Setting ownership of application files..."
-sudo chown -R csye6225:csye6225 /opt/myapp
-sudo chmod -R 750 /opt/myapp
+# Move .env configuration file
+sudo mv /tmp/.env /opt/webapp
 
-echo "Setting up systemd service..."
-sudo mv /tmp/webapp.service /etc/systemd/system/webapp.service
-sudo chmod 644 /etc/systemd/system/webapp.service
+# -------------------------------------
+# Create Service-Specific Linux User
+# -------------------------------------
+# Ensure group exists
+sudo groupadd -f servicegroup
 
-echo "Reloading systemd and enabling service..."
+# Add non-login user to servicegroup
+sudo useradd -r -M -g servicegroup -s /usr/sbin/nologin serviceuser || true
+sudo useradd -r -s /usr/sbin/nologin -m serviceuser || true
+
+# ------------------------------
+# Install Node.js & Dependencies
+# ------------------------------
+echo "Installing Node.js runtime..."
+
+# Add Node.js 18.x repo and install
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Confirm installation
+node -v
+npm -v
+
+# -------------------------------
+# Set Up Application Environment
+# -------------------------------
+echo "Setting up application directory..."
+
+cd /opt/webapp
+
+# Set initial permissions
+sudo chown -R ubuntu:ubuntu /opt/webapp
+sudo chmod -R 755 /opt/webapp
+
+# Install dependencies from package-lock.json
+echo "Fetching application dependencies..."
+npm ci
+
+# Explicitly install critical dependencies (if not listed in package.json)
+npm install dotenv express mysql2 sequelize
+
+# Set ownership to service user after installations
+sudo chown -R serviceuser:servicegroup /opt/webapp
+
+# -------------------------------------
+# Configure MySQL for the Application
+# -------------------------------------
+echo "Setting up MySQL schema..."
+
+# Create application-specific DB and user
+sudo mysql -e 'CREATE DATABASE IF NOT EXISTS HealthCheck;'
+sudo mysql -e "CREATE USER IF NOT EXISTS 'root'@'localhost' IDENTIFIED BY 'Pass1234';"
+sudo mysql -e "GRANT ALL PRIVILEGES ON HealthCheck.* TO 'root'@'localhost';"
+sudo mysql -e 'FLUSH PRIVILEGES;'
+
+# -------------------------------
+# Start Web Application Service
+# -------------------------------
+# Register and start the systemd service
 sudo systemctl daemon-reload
-sudo systemctl enable webapp
-sudo systemctl start webapp
+sudo systemctl enable webapp.service
+sudo systemctl start webapp.service
 
-echo "Setup complete!"
+# echo "Application deployed successfully"

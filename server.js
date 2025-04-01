@@ -1,25 +1,57 @@
-// server.js - modify your existing file
 const app = require("./app");
-const { connectToDatabase, sequelize } = require("./utils/database");
-const logger = require('./utils/logger');
+const { sequelize } = require("./models");
+const { createDatabaseIfNotExists } = require("./utils/database");
+const logger = require("./utils/logger");
 const PORT = process.env.PORT || 8080;
 
-async function launchServer() {
+// -----------------------------
+// Server Startup Function
+// -----------------------------
+async function startServer() {
   try {
-    // Ensure the database is initialized and synchronized
-    logger.info("Initializing database connection...");
-    await connectToDatabase();
-    await sequelize.sync({force: false});
-    logger.info("Database initialized and synchronized successfully");
+    logger.info("Starting server initialization");
+
+    // Create the DB if it doesn't exist
+    logger.info("Creating database if it doesn't exist");
+    await createDatabaseIfNotExists();
+
+    // Sync Sequelize models
+    logger.info("Syncing database models");
+    await sequelize.sync(); // For production: use migrations instead of sync
+    logger.info("Database synced successfully");
 
     // Start the Express server
     app.listen(PORT, () => {
-      logger.info(`Application is live on port ${PORT}`);
+      logger.info(`Server is running on port ${PORT}`);
     });
-  } catch (err) {
-    logger.error(`Server startup failed: ${err.message}`, { error: err });
-    process.exit(1);
+  } catch (error) {
+    logger.error(`Unable to start server: ${error.message}`, {
+      error: error.stack,
+    });
+    process.exit(1); // Exit with failure
   }
 }
 
-launchServer();
+// ------------------------------------
+// Global Error Handling (Process Level)
+// ------------------------------------
+
+// Catch unhandled promise rejections
+process.on("unhandledRejection", (reason, promise) => {
+  logger.error("Unhandled Rejection:", {
+    reason: reason.toString(),
+    stack: reason.stack || "No stack trace available",
+  });
+});
+
+// Catch uncaught exceptions
+process.on("uncaughtException", (error) => {
+  logger.error("Uncaught Exception:", {
+    error: error.toString(),
+    stack: error.stack || "No stack trace available",
+  });
+  process.exit(1); // Exit immediately to avoid running in inconsistent state
+});
+
+// Start the app
+startServer();

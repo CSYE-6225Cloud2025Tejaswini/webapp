@@ -3,22 +3,28 @@ const router = express.Router();
 const multer = require("multer");
 const FileController = require("../controllers/fileController");
 
-// Configure multer storage for memory storage
-const storage = multer.memoryStorage();
+// -------------------------------
+// Configure Multer for File Uploads
+// -------------------------------
+const storage = multer.memoryStorage(); // Store uploaded files in memory
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // Limit file size to 5MB
+    fileSize: 5 * 1024 * 1024, // Max file size: 5MB
   },
 });
 
-// File upload route
-router.post("/v1/file", upload.single("LOGO"), FileController.uploadFile);
+// -------------------------------
+// File Routes
+// -------------------------------
 
-// Get file by ID route
+// Upload a file (expects multipart/form-data with "Image" field)
+router.post("/v1/file", upload.single("Image"), FileController.uploadFile);
+
+// Retrieve a file's metadata by ID
 router.get("/v1/file/:id", FileController.getFile);
 
-// Delete file by ID route
-router.delete("/v1/file/:id", FileController.deletingFile);
+// Delete a file by ID
+router.delete("/v1/file/:id", FileController.deleteFile);
 
 module.exports = router;
