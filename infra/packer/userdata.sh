@@ -12,7 +12,8 @@ sudo apt-get install -y curl unzip
 # Install Node.js
 # ---------------------
 echo "Installing Node.js runtime..."
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+
 sudo apt-get install -y nodejs
 
 # ------------------------------
