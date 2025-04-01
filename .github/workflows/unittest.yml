@@ -58,7 +58,7 @@ jobs:
         run: npm cache clean --force
 
       - name: Install Project Dependencies
-        run: npm ci  # Install dependencies using clean install for reproducibility
+        run: npm install  # Install dependencies using clean install for reproducibility
 
       - name: Run Tests
         run: npm test # Run unit tests
