@@ -1,38 +1,52 @@
 #!/bin/bash
-set -e
+set -e  # Exit on any error
 
-# Update system packages
+# -------------------------------
+# System Update & Prerequisites
+# -------------------------------
 sudo apt-get update
 sudo apt-get upgrade -y
-
-# Install required packages
 sudo apt-get install -y curl unzip
 
-# Install Node.js from NodeSource repository
+# ---------------------
+# Install Node.js
+# ---------------------
 echo "Installing Node.js runtime..."
 curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
 sudo apt-get install -y nodejs
 
-# No MySQL installation needed - using RDS for database
+# ------------------------------
+# Database Note (No MySQL)
+# ------------------------------
+# Skipping local MySQL setup – using Amazon RDS instead
 
-# Create application user
+# ------------------------------------
+# Create Application User
+# ------------------------------------
 useradd -m -s /bin/bash webapp || echo "User already exists"
 
-# Set up application directory
+# ----------------------------
+# Setup Application Directory
+# ----------------------------
 echo "Setting up application directory..."
 mkdir -p /opt/webapp
 cd /opt/webapp
 
-# Install CloudWatch agent
+# ----------------------------
+# Install CloudWatch Agent
+# ----------------------------
+echo "Installing CloudWatch Agent..."
 wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
 dpkg -i amazon-cloudwatch-agent.deb
 
-# Create log directory
+# Create directory for log files
 mkdir -p /opt/webapp/logs
 chown webapp:webapp /opt/webapp/logs
 chmod 755 /opt/webapp/logs
 
-# Configuring CloudWatch agent
+# ----------------------------
+# Configure CloudWatch Agent
+# ----------------------------
 cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << 'CWAGENTCONFIG'
 {
   "agent": {
@@ -72,21 +86,26 @@ cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << 'CWAG
 }
 CWAGENTCONFIG
 
-# Start CloudWatch agent
+# Start CloudWatch Agent
 /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
 
-# Extract the uploaded zip file
+# ----------------------------------
+# Deploy Application Code
+# ----------------------------------
+# Clean up any existing files and unzip the new ones
 rm -rf /opt/webapp/*
 unzip -o /tmp/application.zip -d /opt/webapp/
 
-# Move environment file
+# Move environment variables file into place
 mv /tmp/.env /opt/webapp/
 
-# Set the correct permissions
+# Set appropriate permissions
 chown -R webapp:webapp /opt/webapp
 chmod -R 755 /opt/webapp
 
-# Install application dependencies
+# ----------------------------------
+# Install Node.js Dependencies
+# ----------------------------------
 echo "Fetching application dependencies..."
 cd /opt/webapp
 if [ -f "package-lock.json" ]; then
@@ -95,7 +114,9 @@ else
   npm install
 fi
 
-# Create systemd service file
+# ----------------------------------
+# Create systemd Service Definition
+# ----------------------------------
 cat > /etc/systemd/system/webapp.service << EOF
 [Unit]
 Description=Node.js Web Application
@@ -114,13 +135,13 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-# Set proper permissions for systemd service file
+# Set correct permissions
 chmod 644 /etc/systemd/system/webapp.service
 
-# No local MySQL configuration needed - using RDS for database
+# ----------------------------
+# Start Application Service
+# ----------------------------
 echo "RDS will be used for database functionality"
-
-# Enable and start the service
 echo "Starting web application service..."
 systemctl daemon-reload
 systemctl enable webapp

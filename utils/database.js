@@ -1,10 +1,14 @@
-require("dotenv").config();
+require("dotenv").config(); // Load environment variables from .env
+
 const { Sequelize } = require("sequelize");
 
+// -------------------------------------------
+// Create DB if it doesn't exist on the server
+// -------------------------------------------
 async function createDatabaseIfNotExists() {
   const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
 
-  // Connect to MySQL server without specifying a database
+  // Connect to MySQL server without selecting a specific DB
   const sequelize = new Sequelize("", DB_USER, DB_PASSWORD, {
     host: DB_HOST,
     port: DB_PORT,
@@ -19,15 +23,15 @@ async function createDatabaseIfNotExists() {
   });
 
   try {
-    // Authenticate connection
-    await sequelize.authenticate();
+    await sequelize.authenticate(); // Test connection
     console.log("Connection to MySQL server established successfully.");
 
-    // Check if the database exists
+    // Check if the target database exists
     const [results] = await sequelize.query(
       `SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '${DB_NAME}'`
     );
 
+    // Create the database if not found
     if (results.length === 0) {
       await sequelize.query(`CREATE DATABASE \`${DB_NAME}\``);
       console.log(`Database "${DB_NAME}" created successfully.`);
@@ -38,15 +42,17 @@ async function createDatabaseIfNotExists() {
     console.error("Error creating database:", error);
     throw error;
   } finally {
-    await sequelize.close();
+    await sequelize.close(); // Close connection regardless of outcome
   }
 }
 
+// ---------------------------------------------------
+// Utility to test connection to the specified database
+// ---------------------------------------------------
 async function testConnection() {
   try {
     const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
 
-    // Create a temporary connection to test the database
     const testSequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
       host: DB_HOST,
       port: DB_PORT,
@@ -54,7 +60,7 @@ async function testConnection() {
       logging: false,
     });
 
-    await testSequelize.authenticate();
+    await testSequelize.authenticate(); // Test DB connection
     await testSequelize.close();
     return true;
   } catch (error) {
@@ -63,4 +69,7 @@ async function testConnection() {
   }
 }
 
-module.exports = { createDatabaseIfNotExists, testConnection };
+module.exports = {
+  createDatabaseIfNotExists,
+  testConnection,
+};

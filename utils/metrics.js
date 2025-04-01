@@ -1,40 +1,46 @@
 const StatsD = require("hot-shots");
 
-// Set up a StatsD client that will send metrics to CloudWatch via the agent
+// ----------------------------------------
+// Initialize StatsD Client
+// ----------------------------------------
+// Sends metrics to the local CloudWatch agent via UDP on port 8125
 const statsd = new StatsD({
   host: "localhost",
   port: 8125,
-  prefix: "webapp.",
+  prefix: "webapp.", // Prefix added to all metric names
   errorHandler: (error) => {
     console.error("StatsD error:", error);
   },
 });
 
-// Custom metric functions
+// ----------------------------------------
+// Custom Metric Functions
+// ----------------------------------------
 const metrics = {
-  // Count metrics for API calls
+  // Increment counter for API endpoint hits
   countApiCall: (endpoint) => {
     statsd.increment(`api.${endpoint}.count`);
   },
 
-  // Timer metrics for API response time
+  // Start high-resolution timer (returns process.hrtime value)
   startApiTimer: (endpoint) => {
-    return process.hrtime();
+    return process.hrtime(); // Returns [seconds, nanoseconds]
   },
 
+  // End timer and record duration in milliseconds
   endApiTimer: (endpoint, startTime) => {
     const diff = process.hrtime(startTime);
-    const time = diff[0] * 1000 + diff[1] / 1000000; // Convert to milliseconds
+    const time = diff[0] * 1000 + diff[1] / 1e6; // Convert to milliseconds
     statsd.timing(`api.${endpoint}.time`, time);
     return time;
   },
 
-  // Database query timing
+  // Log database query execution time
   recordDbQueryTime: (queryName, timeMs) => {
     statsd.timing(`db.query.${queryName}.time`, timeMs);
   },
 
-  // S3 operation timing
+  // Log S3-related operation execution time
   recordS3OperationTime: (operation, timeMs) => {
     statsd.timing(`s3.operation.${operation}.time`, timeMs);
   },

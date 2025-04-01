@@ -3,16 +3,16 @@ name: Unit test Webapp
 on:
   pull_request:
     branches:
-      - main
+      - main   # Trigger workflow on pull requests to main branch
 
 jobs:
   run-tests:
     name: Run Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
 
     services:
       mysql:
-        image: mysql:8.0
+        image: mysql:8.0  # Start MySQL 8.0 as a service container
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: test_db
@@ -20,7 +20,7 @@ jobs:
           MYSQL_PASSWORD: test_password
         ports:
           - 3306:3306
-        options: >-
+        options: >-   # Configure health check for MySQL
           --health-cmd="mysqladmin ping -h localhost -u root -proot"
           --health-interval=10s
           --health-timeout=5s
@@ -28,13 +28,14 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4   # Checkout the code from the PR
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "18"
-          cache: "npm"
+          node-version: "18"   # Use Node.js 18
+          cache: "npm"   # Cache dependencies to speed up workflow
+
 
       - name: Verify MySQL Connection
         run: |
@@ -54,11 +55,11 @@ jobs:
           EOF
 
       - name: Install Project Dependencies
-        run: npm ci
+        run: npm ci  # Install dependencies using clean install for reproducibility
 
       - name: Run Tests
-        run: npm test
-        env:
+        run: npm test # Run unit tests
+        env: # Ensure test environment variables are available to the test process
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
           DB_USER: test_user

@@ -3,14 +3,17 @@ const app = require("../../app");
 const { sequelize, HealthCheck } = require("../../models");
 
 describe("Healthcheck API Integration Tests", () => {
+  // Sync database before all tests
   beforeAll(async () => {
     await sequelize.sync({ force: true });
   });
 
+  // Close DB connection after all tests
   afterAll(async () => {
     await sequelize.close();
   });
 
+  // Clear HealthCheck table before each test
   beforeEach(async () => {
     await HealthCheck.destroy({ truncate: true });
   });
@@ -23,7 +26,7 @@ describe("Healthcheck API Integration Tests", () => {
 
       expect(response.status).toBe(200);
 
-      // Verify database entry
+      // Ensure a health check entry is created in DB
       const healthChecks = await HealthCheck.findAll();
       expect(healthChecks).toHaveLength(1);
     });

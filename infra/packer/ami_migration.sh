@@ -1,20 +1,20 @@
 #!/bin/bash
 set -e
 
-echo "Starting AMI sharing process..."
+echo "Starting AMI sharing"
 
-# Fetch AWS authentication details from environment
+# Fetch AWS authentication details from environment variables
 SRC_AWS_KEY="${DEV_AWS_ACCESS_KEY_ID}"
 SRC_AWS_SECRET="${DEV_AWS_SECRET_ACCESS_KEY}"
 DEST_AWS_KEY="${DEMO_AWS_ACCESS_KEY_ID}"
 DEST_AWS_SECRET="${DEMO_AWS_SECRET_ACCESS_KEY}"
 DEST_ACCOUNT_ID="${DEMO_ACCOUNT_ID_PKR}"
 
-# Input Region Details
+# Define region and AMI name for the duplicated copy
 CLOUD_REGION="us-east-1"
 DUPLICATED_AMI_NAME="Copied-custom-nodejs-mysql-$(date +%Y%m%d-%H%M%S)"
 
-# Set AWS CLI Profiles for Both Accounts
+# Configure AWS CLI profiles for both source and target accounts
 aws configure set aws_access_key_id "${SRC_AWS_KEY}" --profile source-account
 aws configure set aws_secret_access_key "${SRC_AWS_SECRET}" --profile source-account
 aws configure set region "${CLOUD_REGION}" --profile source-account
@@ -25,14 +25,14 @@ aws configure set region "${CLOUD_REGION}" --profile target-account
 
 echo "AWS CLI Profiles Configured"
 
-# Retrieve ID for source AWS account
+# Retrieve ID for source AWS account ID using STS
 SRC_ACCOUNT_ID=$(aws sts get-caller-identity \
     --profile source-account \
     --query 'Account' \
     --output text)
 echo "Source Account ID: ${SRC_ACCOUNT_ID}"
 
-# Identify latest AMI matching defined naming convention
+# Find the latest AMI with the specified naming pattern
 echo "Finding latest AMI..."
 SRC_AMI_ID=$(aws ec2 describe-images \
     --profile source-account \
@@ -40,7 +40,7 @@ SRC_AMI_ID=$(aws ec2 describe-images \
     --filters "Name=name,Values=custom-ubuntu-image*" \
     --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
     --output text)
-
+# Ensure an AMI was found
 if [ -z "${SRC_AMI_ID}" ] || [ "${SRC_AMI_ID}" == "None" ]; then
     echo "No AMI found with name prefix 'custom-ubuntu-image'. Exiting."
     exit 1
@@ -48,7 +48,7 @@ fi
 
 echo "Found latest AMI: ${SRC_AMI_ID}"
 
-# Share the AMI with the Target Account
+# Share the AMI with the destination (target) AWS account
 echo "Sharing AMI with target account..."
 aws ec2 modify-image-attribute \
     --profile source-account \
@@ -56,7 +56,7 @@ aws ec2 modify-image-attribute \
     --launch-permission "Add=[{UserId=${DEST_ACCOUNT_ID}}]" \
     --region "${CLOUD_REGION}"
 
-# Get the Snapshot IDs of the AMI
+# Retrieve all snapshot IDs associated with the AMI
 echo "Fetching Snapshot IDs..."
 AMI_SNAPSHOT_IDS=$(aws ec2 describe-images \
     --profile source-account \
@@ -77,11 +77,11 @@ for AMI_SNAPSHOT_ID in ${AMI_SNAPSHOT_IDS}; do
         --region "${CLOUD_REGION}"
 done
 
-# Allow permissions to propagate
+# Wait to allow permission propagation before copying
 echo "Waiting for permissions to propagate (15 seconds)..."
 sleep 15
 
-# Create a duplicate AMI within target AWS account
+# Initiate the AMI copy process from source to destination account
 echo "Initiating AMI copy to target account..."
 DEST_AMI_ID=$(aws ec2 copy-image \
     --profile target-account \
@@ -90,6 +90,8 @@ DEST_AMI_ID=$(aws ec2 copy-image \
     --region "${CLOUD_REGION}" \
     --name "${DUPLICATED_AMI_NAME}" \
     --query 'ImageId' --output text)
+
+# Final confirmation output
 
 echo "AMI Copy process started successfully."
 echo "Source AMI: ${SRC_AMI_ID}"

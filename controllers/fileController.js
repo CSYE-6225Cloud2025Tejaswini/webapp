@@ -5,6 +5,7 @@ const logger = require("../utils/logger");
 const metrics = require("../utils/metrics");
 
 class FileController {
+  // Upload a file to S3 and store metadata in the database
   static async uploadFile(req, res) {
     const startTime = metrics.startApiTimer("uploadFile");
     setCommonHeaders(res);
@@ -13,7 +14,7 @@ class FileController {
       metrics.countApiCall("uploadFile");
       logger.info("File upload request received");
 
-      // Check if file is provided
+      // Ensure file is present in the request
       if (!req.file) {
         logger.warn("File upload attempted without file");
         metrics.endApiTimer("uploadFile", startTime);
@@ -35,7 +36,7 @@ class FileController {
       const dbTimeMs = dbDiff[0] * 1000 + dbDiff[1] / 1000000;
       metrics.recordDbQueryTime("createFile", dbTimeMs);
 
-      // Return success response with file details
+      // Log success and return file metadata to client
       const responseTime = metrics.endApiTimer("uploadFile", startTime);
       logger.info(
         `File uploaded successfully: ${fileInfo.file_name}, id: ${fileInfo.id}, response time: ${responseTime}ms`
@@ -48,6 +49,7 @@ class FileController {
         upload_date: newFile.upload_date,
       });
     } catch (error) {
+      // Log error and return bad request
       logger.error(`Error uploading file: ${error.message}`, {
         error: error.stack,
       });
@@ -55,7 +57,7 @@ class FileController {
       return res.status(400).json({ error: "Bad Request" });
     }
   }
-
+  // Retrieve metadata for a specific file by ID
   static async getFile(req, res) {
     const startTime = metrics.startApiTimer("getFile");
     setCommonHeaders(res);
@@ -65,7 +67,7 @@ class FileController {
       const fileId = req.params.id;
       logger.info(`Get file request received for id: ${fileId}`);
 
-      // Find file metadata in database
+      /// Look up file metadata in the database
       const dbStartTime = process.hrtime();
       const file = await File.findByPk(fileId);
       const dbDiff = process.hrtime(dbStartTime);
@@ -78,7 +80,7 @@ class FileController {
         return res.status(404).json({ error: "Not Found" });
       }
 
-      // Return file information
+      // Log success and return file metadata
       const responseTime = metrics.endApiTimer("getFile", startTime);
       logger.info(
         `File retrieved successfully: ${file.file_name}, response time: ${responseTime}ms`
@@ -91,6 +93,7 @@ class FileController {
         upload_date: file.upload_date,
       });
     } catch (error) {
+      // Log error and return not found
       logger.error(`Error retrieving file: ${error.message}`, {
         error: error.stack,
       });
@@ -98,7 +101,7 @@ class FileController {
       return res.status(404).json({ error: "Not Found" });
     }
   }
-
+// Delete a file from both S3 and the database
   static async deleteFile(req, res) {
     const startTime = metrics.startApiTimer("deleteFile");
     setCommonHeaders(res);
@@ -131,7 +134,7 @@ class FileController {
       const deleteDbTimeMs = deleteDbDiff[0] * 1000 + deleteDbDiff[1] / 1000000;
       metrics.recordDbQueryTime("deleteFile", deleteDbTimeMs);
 
-      // Return no content for successful deletion
+      // Log success and send no content response
       const responseTime = metrics.endApiTimer("deleteFile", startTime);
       logger.info(
         `File deleted successfully: ${file.file_name}, id: ${fileId}, response time: ${responseTime}ms`
@@ -139,6 +142,7 @@ class FileController {
 
       return res.status(204).end();
     } catch (error) {
+      // Log error and return not found
       logger.error(`Error deleting file: ${error.message}`, {
         error: error.stack,
       });

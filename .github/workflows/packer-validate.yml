@@ -2,21 +2,21 @@ name: Validate Packer Script
 on:
   pull_request:
     branches:
-      - main
+      - main       # Trigger workflow on pull requests targeting the main branch
 jobs:
   validate_packer:
     name: Validate Packer Script
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest     # Use the latest Ubuntu runner for the job
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # Pulls down the code from the PR branch
       - name: Install Packer
-        uses: hashicorp/setup-packer@v2
+        uses: hashicorp/setup-packer@v2 # Sets up the latest version of Packer CLI
         with:
           version: latest
       - name: Initialize Packer
         working-directory: infra/packer/
-        run: packer init .
+        run: packer init .    # Initializes Packer plugins and modules
       - name: Check Packer Formatting
         working-directory: infra/packer/
         run: |
@@ -28,4 +28,4 @@ jobs:
           fi
       - name: Validate Packer Configuration
         working-directory: infra/packer/
-        run: packer validate .
+        run: packer validate .   # Validates syntax and configuration of the Packer template

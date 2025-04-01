@@ -4,6 +4,7 @@ const logger = require("../utils/logger");
 const metrics = require("../utils/metrics");
 
 class HealthcheckController {
+  // Handle GET /healthz request for health checks
   static async getHealthCheck(req, res) {
     const startTime = metrics.startApiTimer("healthCheck");
     setCommonHeaders(res);
@@ -11,19 +12,19 @@ class HealthcheckController {
     try {
       metrics.countApiCall("healthCheck");
       logger.info("Health check request received");
-
+      // Reject request if any query parameters are present
       if (Object.keys(req.query).length > 0) {
         logger.warn("Health check attempted with query parameters");
         metrics.endApiTimer("healthCheck", startTime);
         return res.status(400).end();
       }
-
+      // Reject request if body is not empty
       if (Object.keys(req.body).length > 0) {
         logger.warn("Health check attempted with request body");
         metrics.endApiTimer("healthCheck", startTime);
         return res.status(400).end();
       }
-
+      // Allow only standard headers
       const standardHeaders = [
         "host",
         "user-agent",
@@ -35,7 +36,7 @@ class HealthcheckController {
         "accept-encoding",
         "accept-language",
       ];
-
+      // Reject if any custom headers are included
       const customHeaders = Object.keys(req.headers).filter(
         (header) => !standardHeaders.includes(header.toLowerCase())
       );
@@ -50,7 +51,7 @@ class HealthcheckController {
         return res.status(400).end();
       }
 
-      // Test database connection
+       // Attempt DB connection and record timestamp
       const dbStartTime = process.hrtime();
       await sequelize.authenticate();
       await HealthCheck.create({
@@ -59,12 +60,14 @@ class HealthcheckController {
       const dbDiff = process.hrtime(dbStartTime);
       const dbTimeMs = dbDiff[0] * 1000 + dbDiff[1] / 1000000;
       metrics.recordDbQueryTime("healthCheckDb", dbTimeMs);
-
+      // Log success and respond with HTTP 200
       const responseTime = metrics.endApiTimer("healthCheck", startTime);
       logger.info(`Health check successful, response time: ${responseTime}ms`);
 
       return res.status(200).end();
     } catch (error) {
+      // Log and return HTTP 503 on failure
+
       logger.error(`Health check failed: ${error.message}`, {
         error: error.stack,
       });
@@ -72,14 +75,14 @@ class HealthcheckController {
       return res.status(503).end();
     }
   }
-
+  // Handle unsupported HTTP methods for health check route
   static handleUnsupportedMethods(req, res) {
     metrics.countApiCall("unsupportedMethod");
     setCommonHeaders(res);
     logger.warn(
       `Unsupported method ${req.method} requested for path: ${req.path}`
     );
-    res.status(405).end();
+    res.status(405).end(); // Method Not Allowed
   }
 }
 

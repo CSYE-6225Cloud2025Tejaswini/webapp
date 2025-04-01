@@ -3,18 +3,18 @@ name: Build and Share Machine Images
 on:
   pull_request:
     branches:
-      - main
+      - main # Trigger workflow on pull requests to main branch
 
 jobs:
   machine_image_build:
     name: Build and Share Machine Images
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Use latest Ubuntu runner
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2    # Pulls down code from the repository
 
       - name: Install Packer
-        uses: hashicorp/setup-packer@main
+        uses: hashicorp/setup-packer@main  # Set specific Packer version to ensure consistency
         with:
           version: "1.8.5"
 
@@ -22,8 +22,9 @@ jobs:
       - name: Initialize Packer Plugins
         run: |
           cd infra/packer
-          packer init packer.pkr.hcl
-
+          packer init packer.pkr.hcl  
+      
+        # Validate Packer config before building AMI
       - name: Validate Packer template
         run: |
           cd infra/packer
