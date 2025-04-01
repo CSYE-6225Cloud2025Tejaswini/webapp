@@ -30,7 +30,7 @@
       "pg-hstore": "^2.3.4",
       "supertest": "^7.0.0"
     },
-    "author": "Aditya Raj",
+    "author": "Tejaswini Chavan",
     "license": "ISC"
   }
   
