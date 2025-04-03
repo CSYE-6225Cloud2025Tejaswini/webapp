@@ -15,14 +15,12 @@ class HealthcheckController {
       // Reject request if any query parameters are present
       if (Object.keys(req.query).length > 0) {
         logger.warn("Health check attempted with query parameters");
-        metrics.endApiTimer("healthCheck", startTime);
-        return res.status(400).end();
+        
       }
       // Reject request if body is not empty
       if (Object.keys(req.body).length > 0) {
         logger.warn("Health check attempted with request body");
-        metrics.endApiTimer("healthCheck", startTime);
-        return res.status(400).end();
+        
       }
       // Allow only standard headers
       const standardHeaders = [
@@ -47,8 +45,7 @@ class HealthcheckController {
             ", "
           )}`
         );
-        metrics.endApiTimer("healthCheck", startTime);
-        return res.status(400).end();
+        
       }
 
        // Attempt DB connection and record timestamp

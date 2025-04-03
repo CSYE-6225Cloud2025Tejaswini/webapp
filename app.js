@@ -66,6 +66,13 @@ app.use(
   })
 );
 
+app.get("/", (req,res) => {
+  logger.info("Root path accessed");
+  metrics.countApiCall("rootPath");
+  setCommonHeaders(res);
+  res.status(200).end();
+});
+
 // --------------------
 // Route Registrations
 // --------------------
