@@ -1,61 +1,77 @@
 const winston = require("winston");
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 
-// ------------------------------------------
-// Ensure logs directory exists
-// ------------------------------------------
+// Create logs directory if it doesn't exist
 const logDirectory = process.env.LOG_DIRECTORY || "logs";
 if (!fs.existsSync(logDirectory)) {
   fs.mkdirSync(logDirectory, { recursive: true });
 }
 
-// ------------------------------------------
-// Configure Winston Logger
-// ------------------------------------------
+// Get instance ID for CloudWatch stream name
+const getInstanceId = () => {
+  try {
+    if (process.env.AWS_EXECUTION_ENV) {
+      // Running on EC2, try to get instance ID from metadata
+      return os.hostname();
+    }
+    // Not running on EC2, use a placeholder
+    return `local-${os.hostname()}`;
+  } catch (error) {
+    return `unknown-${Date.now()}`;
+  }
+};
+
+// Configure the logger with file and console outputs
 const logger = winston.createLogger({
-  level: "info", // Minimum level to log (info and above)
+  level: process.env.LOG_LEVEL || "info",
   format: winston.format.combine(
-    winston.format.timestamp(), // Add timestamps
-    winston.format.json()       // Output logs in JSON format
+    winston.format.timestamp(),
+    winston.format.json()
   ),
-  defaultMeta: { service: "webapp" }, // Include service name in all logs
+  defaultMeta: {
+    service: "webapp",
+    instance: getInstanceId(),
+    environment: process.env.NODE_ENV || "development"
+  },
   transports: [
-    // General log file for all levels
+    // Write all logs to application.log
     new winston.transports.File({
       filename: path.join(logDirectory, "application.log"),
     }),
-
-    // Separate error log for level "error" only
+    // Write error logs to error.log
     new winston.transports.File({
       filename: path.join(logDirectory, "error.log"),
       level: "error",
     }),
-
-    // Console output for real-time visibility (in color for local dev)
+    // Write to console in development
     new winston.transports.Console({
       format: winston.format.combine(
-        winston.format.colorize(), // Add colors to log level
-        winston.format.simple()    // Simpler output for dev readability
+        winston.format.colorize(),
+        winston.format.simple()
       ),
     }),
   ],
 });
 
-// ------------------------------------------
-//  Add CloudWatch Transport
-// ------------------------------------------
-if (process.env.NODE_ENV !== "test") {
+// Only add CloudWatch in production and when AWS_CLOUDWATCH_ENABLED is true
+if (process.env.NODE_ENV !== "test" && process.env.AWS_CLOUDWATCH_ENABLED === "true") {
   try {
+    // Dynamically import CloudWatch transport
     const { CloudWatchTransport } = require("winston-cloudwatch");
 
     logger.add(
       new CloudWatchTransport({
-        logGroupName: "webapp-logs",
-        logStreamName: `${process.env.NODE_ENV}-${Date.now()}`,
+        logGroupName: process.env.CLOUDWATCH_LOG_GROUP || "webapp-logs",
+        logStreamName: `${getInstanceId()}-${Date.now()}`,
         awsRegion: process.env.AWS_REGION || "us-east-1",
-        messageFormatter: (item) =>
-          `${item.level}: ${item.message} ${JSON.stringify(item.meta)}`,
+        messageFormatter: (item) => {
+          const { level, message, ...meta } = item;
+          return `[${level.toUpperCase()}] ${message} ${JSON.stringify(meta)}`;
+        },
+        jsonMessage: true,
+        retentionInDays: 7
       })
     );
 
@@ -65,7 +81,7 @@ if (process.env.NODE_ENV !== "test") {
       "CloudWatch transport could not be initialized:",
       error.message
     );
-    // Proceed without CloudWatch (fallback to local logging only)
+    // Continue without CloudWatch - graceful degradation
   }
 }
 
