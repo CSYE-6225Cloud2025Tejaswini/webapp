@@ -56,7 +56,10 @@ const logger = winston.createLogger({
 });
 
 // Only add CloudWatch in production and when AWS_CLOUDWATCH_ENABLED is true
-if (process.env.NODE_ENV !== "test" && process.env.AWS_CLOUDWATCH_ENABLED === "true") {
+if (process.env.NODE_ENV !== "test") {
+process.env.NODE_ENV !== "test" &&
+process.env.AWS_CLOUDWATCH_ENABLED === "true"
+} 
   try {
     // Dynamically import CloudWatch transport
     const { CloudWatchTransport } = require("winston-cloudwatch");
@@ -83,6 +86,5 @@ if (process.env.NODE_ENV !== "test" && process.env.AWS_CLOUDWATCH_ENABLED === "t
     );
     // Continue without CloudWatch - graceful degradation
   }
-}
 
 module.exports = logger;
