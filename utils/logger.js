@@ -17,9 +17,9 @@ const getInstanceId = () => {
       return os.hostname();
     }
     // Not running on EC2, use a placeholder
-    return `local-${os.hostname()}`;
+    return local-${os.hostname()};
   } catch (error) {
-    return `unknown-${Date.now()}`;
+    return unknown-${Date.now()};
   }
 };
 
@@ -33,7 +33,7 @@ const logger = winston.createLogger({
   defaultMeta: {
     service: "webapp",
     instance: getInstanceId(),
-    environment: process.env.NODE_ENV || "development"
+    environment: process.env.NODE_ENV || "development",
   },
   transports: [
     // Write all logs to application.log
@@ -56,10 +56,10 @@ const logger = winston.createLogger({
 });
 
 // Only add CloudWatch in production and when AWS_CLOUDWATCH_ENABLED is true
-if (process.env.NODE_ENV !== "test") {
-process.env.NODE_ENV !== "test" &&
-process.env.AWS_CLOUDWATCH_ENABLED === "true"
-} 
+if (
+  process.env.NODE_ENV !== "test" &&
+  process.env.AWS_CLOUDWATCH_ENABLED === "true"
+) {
   try {
     // Dynamically import CloudWatch transport
     const { CloudWatchTransport } = require("winston-cloudwatch");
@@ -67,14 +67,14 @@ process.env.AWS_CLOUDWATCH_ENABLED === "true"
     logger.add(
       new CloudWatchTransport({
         logGroupName: process.env.CLOUDWATCH_LOG_GROUP || "webapp-logs",
-        logStreamName: `${getInstanceId()}-${Date.now()}`,
+        logStreamName: ${getInstanceId()}-${Date.now()},
         awsRegion: process.env.AWS_REGION || "us-east-1",
         messageFormatter: (item) => {
           const { level, message, ...meta } = item;
-          return `[${level.toUpperCase()}] ${message} ${JSON.stringify(meta)}`;
+          return [${level.toUpperCase()}] ${message} ${JSON.stringify(meta)};
         },
         jsonMessage: true,
-        retentionInDays: 7
+        retentionInDays: 7,
       })
     );
 
@@ -84,7 +84,7 @@ process.env.AWS_CLOUDWATCH_ENABLED === "true"
       "CloudWatch transport could not be initialized:",
       error.message
     );
-    // Continue without CloudWatch - graceful degradation
   }
+}
 
 module.exports = logger;
