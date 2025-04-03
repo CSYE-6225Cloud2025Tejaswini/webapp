@@ -1,49 +1,74 @@
 const StatsD = require("hot-shots");
+const os = require("os");
 
-// ----------------------------------------
-// Initialize StatsD Client
-// ----------------------------------------
-// Sends metrics to the local CloudWatch agent via UDP on port 8125
+// Set up a StatsD client that will send metrics to CloudWatch via the agent
 const statsd = new StatsD({
   host: "localhost",
   port: 8125,
-  prefix: "webapp.", // Prefix added to all metric names
+  prefix: "webapp.",
+  globalTags: { 
+    env: process.env.NODE_ENV || "development",
+    instance: os.hostname()
+  },
   errorHandler: (error) => {
     console.error("StatsD error:", error);
   },
 });
 
-// ----------------------------------------
-// Custom Metric Functions
-// ----------------------------------------
+// Custom metric functions
 const metrics = {
-  // Increment counter for API endpoint hits
+  // Count metrics for API calls
   countApiCall: (endpoint) => {
     statsd.increment(`api.${endpoint}.count`);
   },
 
-  // Start high-resolution timer (returns process.hrtime value)
+  // Timer metrics for API response time
   startApiTimer: (endpoint) => {
-    return process.hrtime(); // Returns [seconds, nanoseconds]
+    return process.hrtime();
   },
 
-  // End timer and record duration in milliseconds
   endApiTimer: (endpoint, startTime) => {
     const diff = process.hrtime(startTime);
-    const time = diff[0] * 1000 + diff[1] / 1e6; // Convert to milliseconds
+    const time = diff[0] * 1000 + diff[1] / 1000000; // Convert to milliseconds
     statsd.timing(`api.${endpoint}.time`, time);
     return time;
   },
 
-  // Log database query execution time
+  // Database query timing
   recordDbQueryTime: (queryName, timeMs) => {
     statsd.timing(`db.query.${queryName}.time`, timeMs);
   },
 
-  // Log S3-related operation execution time
+  // S3 operation timing
   recordS3OperationTime: (operation, timeMs) => {
     statsd.timing(`s3.operation.${operation}.time`, timeMs);
   },
+  
+  // System metrics for auto-scaling
+  recordSystemMetrics: () => {
+    // CPU Usage
+    const cpuLoad = os.loadavg()[0];
+    statsd.gauge('system.cpu.load', cpuLoad);
+    
+    // Memory Usage
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
+    const memoryUsagePercent = (usedMem / totalMem) * 100;
+    statsd.gauge('system.memory.used_percent', memoryUsagePercent);
+    
+    // API Request Rate
+    statsd.gauge('system.api.request_rate', global.requestCount || 0);
+    global.requestCount = 0;  // Reset counter
+  }
 };
+
+// Start periodic collection of system metrics
+global.requestCount = 0;
+
+// Collect system metrics every minute
+setInterval(() => {
+  metrics.recordSystemMetrics();
+}, 60000);
 
 module.exports = metrics;

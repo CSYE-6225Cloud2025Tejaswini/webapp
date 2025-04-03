@@ -26,6 +26,12 @@ app.use((req, res, next) => {
     userAgent: req.get("User-Agent"),
   });
 
+// Request counter middleware for auto-scaling metrics
+app.use((req, res, next) => {
+  global.requestCount = (global.requestCount || 0) + 1;
+  next();
+});
+
   res.on("finish", () => {
     const diff = process.hrtime(startTime);
     const responseTime = diff[0] * 1000 + diff[1] / 1e6;
