@@ -24,6 +24,23 @@ async function startServer() {
     app.listen(PORT, () => {
       logger.info(`Server is running on port ${PORT}`);
     });
+
+    // Add graceful shutdown handler
+    process.on('SIGTERM', () => {
+      logger.info('SIGTERM signal received. Closing HTTP server.');
+      server.close(() => {
+        logger.info('HTTP server closed.');
+        sequelize.close().then(() => {
+          logger.info('Database connections closed.');
+          process.exit(0);
+        }).catch(err => {
+          logger.error('Error closing database connections:', err);
+          process.exit(1);
+        });
+      });
+    });
+    
+    return server;
   } catch (error) {
     logger.error(`Unable to start server: ${error.message}`, {
       error: error.stack,
