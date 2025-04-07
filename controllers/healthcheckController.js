@@ -35,20 +35,28 @@ class HealthcheckController {
         "postman-token",
         "accept-encoding",
         "accept-language",
+
+        // AWS Load Balancer Headers
+        "x-forwarded-for",
+        "x-forwarded-proto",
+        "x-forwarded-port",
+        "x-amzn-trace-id",
+        "x-forwarded-host",
+        // Additional common headers
+        "cache-control",
+        "pragma",
+        "upgrade-insecure-requests"
       ];
-      // Reject if any custom headers are included
-      const customHeaders = Object.keys(req.headers).filter(
+       // Log but don't reject requests with custom headers
+       const customHeaders = Object.keys(req.headers).filter(
         (header) => !standardHeaders.includes(header.toLowerCase())
       );
 
       if (customHeaders.length > 0) {
-        logger.warn(
-          `Health check attempted with custom headers: ${customHeaders.join(
-            ", "
-          )}`
+        logger.info(
+          `Health check received with non-standard headers: ${customHeaders.join(", ")}`
         );
-        metrics.endApiTimer("healthCheck", startTime);
-        return res.status(400).end();
+        // Continue processing instead of rejecting
       }
 
        // Attempt DB connection and record timestamp
