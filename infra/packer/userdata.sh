@@ -6,7 +6,7 @@ set -e  # Exit on any error
 # -------------------------------
 sudo apt-get update
 sudo apt-get upgrade -y
-sudo apt-get install -y curl unzip jq
+sudo apt-get install -y curl unzip jq awscli
 
 # ---------------------
 # Install Node.js
@@ -17,15 +17,26 @@ curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 sudo apt-get install -y nodejs
 
 # ---------------------
-# Retrieve Secrets
+# Retrieve Database Credentials from Secrets Manager
 # ---------------------
 echo "Retrieving database credentials from Secrets Manager..."
-DB_SECRETS=$(aws secretsmanager get-secret-value --secret-id ${db_secret_arn} --query SecretString --output text)
-DB_HOST=$(echo $DB_SECRETS | jq -r '.host')
-DB_PORT=$(echo $DB_SECRETS | jq -r '.port')
-DB_USER=$(echo $DB_SECRETS | jq -r '.username')
-DB_PASSWORD=$(echo $DB_SECRETS | jq -r '.password')
-DB_NAME=$(echo $DB_SECRETS | jq -r '.dbname')
+SECRET_JSON=$(aws secretsmanager get-secret-value \
+  --secret-id db-password-${environment} \
+  --region ${region} \
+  --query SecretString \
+  --output text)
+
+# Parse the secret JSON
+DB_HOST=$(echo $SECRET_JSON | jq -r '.host')
+DB_PORT=$(echo $SECRET_JSON | jq -r '.port')
+DB_USER=$(echo $SECRET_JSON | jq -r '.username')
+DB_PASSWORD=$(echo $SECRET_JSON | jq -r '.password')
+DB_NAME=$(echo $SECRET_JSON | jq -r '.dbname')
+
+# ------------------------------
+# Database Note (No MySQL)
+# ------------------------------
+# Skipping local MySQL setup – using Amazon RDS instead
 
 # ------------------------------------
 # Create Application User
@@ -103,14 +114,14 @@ CWAGENTCONFIG
 rm -rf /opt/webapp/*
 unzip -o /tmp/application.zip -d /opt/webapp/
 
-# Create environment file with retrieved secrets
+# Create .env file with retrieved credentials
 cat > /opt/webapp/.env << EOF
 DB_HOST=$DB_HOST
 DB_PORT=$DB_PORT
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
 DB_NAME=$DB_NAME
-AWS_REGION=${aws_region}
+AWS_REGION=${region}
 S3_BUCKET=${s3_bucket}
 PORT=8080
 NODE_ENV=production
@@ -122,7 +133,7 @@ EOF
 # Set appropriate permissions
 chown -R webapp:webapp /opt/webapp
 chmod -R 755 /opt/webapp
-chmod 600 /opt/webapp/.env
+chmod 600 /opt/webapp/.env  # Restrict access to .env file containing credentials
 
 # ----------------------------------
 # Install Node.js Dependencies
@@ -162,6 +173,7 @@ chmod 644 /etc/systemd/system/webapp.service
 # ----------------------------
 # Start Application Service
 # ----------------------------
+echo "RDS will be used for database functionality"
 echo "Starting web application service..."
 systemctl daemon-reload
 systemctl enable webapp
