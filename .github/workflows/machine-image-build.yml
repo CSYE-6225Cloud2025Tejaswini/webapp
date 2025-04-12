@@ -2,29 +2,31 @@ name: Build and Share Machine Images
 
 on:
   pull_request:
+    types: [closed]
     branches:
-      - main # Trigger workflow on pull requests to main branch
+      - main
 
 jobs:
   machine_image_build:
+    if: github.event.pull_request.merged == true
     name: Build and Share Machine Images
-    runs-on: ubuntu-latest # Use latest Ubuntu runner
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2    # Pulls down code from the repository
+        uses: actions/checkout@v2
 
       - name: Install Packer
-        uses: hashicorp/setup-packer@main  # Set specific Packer version to ensure consistency
+        uses: hashicorp/setup-packer@main
         with:
           version: "1.8.5"
 
-      # Initialize Packer plugins - this is the key addition
+      # Initialize Packer plugins
       - name: Initialize Packer Plugins
         run: |
           cd infra/packer
           packer init packer.pkr.hcl  
       
-        # Validate Packer config before building AMI
+      # Validate Packer config before building AMI
       - name: Validate Packer template
         run: |
           cd infra/packer
@@ -94,3 +96,108 @@ jobs:
           cd infra/packer
           chmod +x ami_migration.sh
           ./ami_migration.sh
+          
+      # Wait for AMI to become available in DEMO account
+      - name: Wait for AMI to be available in DEMO account
+        run: |
+          echo "Waiting for AMI to be available in DEMO account..."
+          sleep 30  # Initial wait for AMI sharing process to begin
+      
+      # Configure AWS DEMO Credentials
+      - name: Configure AWS DEMO Credentials
+        run: |
+          echo "Reconfiguring AWS CLI to use DEMO account credentials..."
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.DEMO_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
+      
+      # Get latest AMI ID from DEMO account
+      - name: Get latest AMI ID
+        id: get-ami
+        run: |
+          # Loop until AMI is found or timeout
+          MAX_ATTEMPTS=20
+          ATTEMPT=0
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            LATEST_AMI=$(aws ec2 describe-images \
+              --owners ${{ secrets.DEMO_ACCOUNT_ID_PKR }} \
+              --filters "Name=name,Values=Copied-custom-*" \
+              --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
+              --output text)
+              
+            if [ "$LATEST_AMI" != "None" ] && [ "$LATEST_AMI" != "null" ] && [ "$LATEST_AMI" != "" ]; then
+              echo "Found latest AMI: $LATEST_AMI"
+              echo "ami_id=$LATEST_AMI" >> $GITHUB_OUTPUT
+              break
+            fi
+            
+            ATTEMPT=$((ATTEMPT+1))
+            echo "Attempt $ATTEMPT: Waiting for AMI to be available in DEMO account..."
+            sleep 30
+          done
+          
+          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            echo "Error: Failed to find AMI in DEMO account after multiple attempts"
+            exit 1
+          fi
+      
+      # Update Launch Template with new AMI ID
+      - name: Update Launch Template
+        id: update-template
+        run: |
+          echo "Updating Launch Template with AMI: ${{ steps.get-ami.outputs.ami_id }}"
+          LAUNCH_TEMPLATE_VERSION=$(aws ec2 create-launch-template-version \
+            --launch-template-name csye6225_asg \
+            --version-description "New version with updated AMI" \
+            --source-version '$Latest' \
+            --launch-template-data "{\"ImageId\":\"${{ steps.get-ami.outputs.ami_id }}\"}" \
+            --query 'LaunchTemplateVersion.VersionNumber' \
+            --output text)
+            
+          echo "Created launch template version: $LAUNCH_TEMPLATE_VERSION"
+          echo "template_version=$LAUNCH_TEMPLATE_VERSION" >> $GITHUB_OUTPUT
+      
+      # Start Instance Refresh for Auto Scaling Group
+      - name: Start Instance Refresh
+        id: start-refresh
+        run: |
+          echo "Starting instance refresh..."
+          REFRESH_ID=$(aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name webapp-asg \
+            --preferences '{"MinHealthyPercentage": 90, "InstanceWarmup": 300}' \
+            --query 'InstanceRefreshId' \
+            --output text)
+            
+          echo "Started instance refresh with ID: $REFRESH_ID"
+          echo "refresh_id=$REFRESH_ID" >> $GITHUB_OUTPUT
+      
+      # Wait for Instance Refresh to complete
+      - name: Wait for Instance Refresh
+        run: |
+          REFRESH_ID=${{ steps.start-refresh.outputs.refresh_id }}
+          echo "Waiting for instance refresh to complete..."
+          
+          # Loop until refresh is complete or failed
+          while true; do
+            STATUS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name webapp-asg \
+              --instance-refresh-ids $REFRESH_ID \
+              --query 'InstanceRefreshes[0].Status' \
+              --output text)
+              
+            echo "Current status: $STATUS"
+            
+            if [ "$STATUS" == "Successful" ]; then
+              echo "Instance refresh completed successfully"
+              break
+            elif [ "$STATUS" == "Failed" ] || [ "$STATUS" == "Cancelled" ]; then
+              echo "Instance refresh failed or was cancelled"
+              exit 1
+            fi
+            
+            echo "Waiting 30 seconds before checking again..."
+            sleep 30
+          done
+          
+          echo "Deployment completed successfully!"
