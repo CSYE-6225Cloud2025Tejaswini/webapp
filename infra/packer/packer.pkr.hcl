@@ -138,9 +138,8 @@ source "googlecompute" "ubuntu" {
 
 # Provision the VM with necessary software and configurations
 build {
-  sources = ["source.amazon-ebs.ubuntu_image", "source.googlecompute.ubuntu"]
+  sources = ["source.amazon-ebs.ubuntu_image"]
 
-  # Upload application files and configuration
   provisioner "file" {
     source      = "/tmp/application.zip"
     destination = "/tmp/application.zip"
@@ -153,9 +152,6 @@ build {
     generated   = true
   }
 
-  # Webapp service file is created directly in userdata.sh
-
-  # Execute the installation script
   provisioner "shell" {
     script          = "userdata.sh"
     execute_command = "chmod +x {{ .Path }}; sudo {{ .Path }}"

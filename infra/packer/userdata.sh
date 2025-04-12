@@ -1,12 +1,13 @@
 #!/bin/bash
-set -e  # Exit on any error
-
-# -------------------------------
-# System Update & Prerequisites
-# -------------------------------
 sudo apt-get update
 sudo apt-get upgrade -y
-sudo apt-get install -y curl unzip jq awscli
+sudo apt-get install -y curl unzip jq
+
+# Install AWS CLI manually (because awscli is missing in apt-get)
+echo "Installing AWS CLI manually..."
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
 
 # ---------------------
 # Install Node.js
