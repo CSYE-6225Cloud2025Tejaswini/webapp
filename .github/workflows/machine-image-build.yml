@@ -7,7 +7,6 @@ on:
 
 jobs:
   machine_image_build:
-    if: github.event.pull_request.merged == true
     name: Build and Share Machine Images
     runs-on: ubuntu-latest
     steps:
