@@ -152,8 +152,8 @@ build {
     generated   = true
   }
 
-  provisioner "shell" {
-    script          = "userdata.sh"
-    execute_command = "chmod +x {{ .Path }}; sudo {{ .Path }}"
-  }
+  # provisioner "shell" {
+  #   script          = "userdata.sh"
+  #   execute_command = "chmod +x {{ .Path }}; sudo {{ .Path }}"
+  # }
 }
