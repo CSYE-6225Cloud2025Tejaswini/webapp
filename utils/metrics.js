@@ -34,7 +34,7 @@ const metrics = {
     return time;
   },
 
-  // DATABASE query timing
+  // DB query timing
   recordDbQueryTime: (queryName, timeMs) => {
     statsd.timing(`db.query.${queryName}.time`, timeMs);
   },
