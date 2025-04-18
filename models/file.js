@@ -19,6 +19,13 @@ module.exports = (sequelize, DataTypes) => {
       },
 
 
+
+
+
+
+
+
+      
       // URL where the file is stored (typically on S3)
       url: {
         type: DataTypes.STRING,
