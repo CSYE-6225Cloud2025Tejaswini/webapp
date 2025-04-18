@@ -25,6 +25,8 @@ module.exports = (sequelize, DataTypes) => {
         field: "url",
       },
 
+      
+
       // Timestamp when the file was uploaded
       upload_date: {
         type: DataTypes.DATE,
