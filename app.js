@@ -8,6 +8,7 @@ const { createDatabaseIfNotExists } = require("./utils/database");
 const { setCommonHeaders } = require("./utils/headers");
 const logger = require("./utils/logger");
 const metrics = require("./utils/metrics");
+const cicdRoutes = require("./routes/cicd")
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -71,6 +72,7 @@ app.use(
 // --------------------
 app.use("/", healthcheckRoutes); // Healthcheck route
 app.use("/", fileRoutes);        // File upload/retrieve/delete routes
+app.use("/", cicdRoutes);
 
 // --------------------
 // 404 Handler

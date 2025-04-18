@@ -24,9 +24,10 @@ class HealthcheckController {
         metrics.endApiTimer("healthCheck", startTime);
         return res.status(400).end();
       }
-      // Allow only standard headers
+      
       const standardHeaders = [
         "host",
+        "connection",
         "user-agent",
         "accept",
         "connection",
@@ -35,18 +36,21 @@ class HealthcheckController {
         "postman-token",
         "accept-encoding",
         "accept-language",
-
-        // AWS Load Balancer Headers
-        "x-forwarded-for",
-        "x-forwarded-proto",
-        "x-forwarded-port",
-        "x-amzn-trace-id",
-        "x-forwarded-host",
-        // Additional common headers
+        "content-length",
+        "content-type",
+        "cookie",
+        "origin",
+        "referer",
+        "authorization",
         "cache-control",
-        "pragma",
-        "upgrade-insecure-requests"
+        "postman-token",
+        "x-forwarded-port",
+        "x-forwarded-proto",
+        "x-amzn-trace-id",
+        "x-forwarded-for",
       ];
+
+
        // Log but don't reject requests with custom headers
        const customHeaders = Object.keys(req.headers).filter(
         (header) => !standardHeaders.includes(header.toLowerCase())

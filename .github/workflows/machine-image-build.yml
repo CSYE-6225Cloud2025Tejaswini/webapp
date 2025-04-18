@@ -96,13 +96,12 @@ jobs:
           cd infra/packer
           chmod +x ami_migration.sh
           ./ami_migration.sh
-          
-      # Wait for AMI to become available in DEMO account
+
       - name: Wait for AMI to be available in DEMO account
         run: |
           echo "Waiting for AMI to be available in DEMO account..."
           sleep 30  # Initial wait for AMI sharing process to begin
-      
+
       # Configure AWS DEMO Credentials
       - name: Configure AWS DEMO Credentials
         run: |
@@ -110,7 +109,7 @@ jobs:
           echo "AWS_ACCESS_KEY_ID=${{ secrets.DEMO_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
           echo "AWS_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
-      
+
       # Get latest AMI ID from DEMO account
       - name: Get latest AMI ID
         id: get-ami
@@ -118,7 +117,7 @@ jobs:
           # Loop until AMI is found or timeout
           MAX_ATTEMPTS=20
           ATTEMPT=0
-          
+
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             LATEST_AMI=$(aws ec2 describe-images \
               --owners ${{ secrets.DEMO_ACCOUNT_ID_PKR }} \
@@ -136,12 +135,12 @@ jobs:
             echo "Attempt $ATTEMPT: Waiting for AMI to be available in DEMO account..."
             sleep 30
           done
-          
+
           if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
             echo "Error: Failed to find AMI in DEMO account after multiple attempts"
             exit 1
           fi
-      
+
       # Update Launch Template with new AMI ID
       - name: Update Launch Template
         id: update-template
@@ -157,6 +156,7 @@ jobs:
             
           echo "Created launch template version: $LAUNCH_TEMPLATE_VERSION"
           echo "template_version=$LAUNCH_TEMPLATE_VERSION" >> $GITHUB_OUTPUT
+
       
       # Start Instance Refresh for Auto Scaling Group
       - name: Start Instance Refresh
