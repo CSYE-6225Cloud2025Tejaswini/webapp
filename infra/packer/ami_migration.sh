@@ -12,7 +12,8 @@ DEST_ACCOUNT_ID="${DEMO_ACCOUNT_ID_PKR}"
 
 # Define region and AMI name for the duplicated copy
 CLOUD_REGION="us-east-1"
-DUPLICATED_AMI_NAME="Copied-custom-nodejs-mysql-$(date +%Y%m%d-%H%M%S)"
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+DUPLICATED_AMI_NAME="webappAMI-${TIMESTAMP}"
 
 # Configure AWS CLI profiles for both source and target accounts
 aws configure set aws_access_key_id "${SRC_AWS_KEY}" --profile source-account
@@ -37,7 +38,7 @@ echo "Finding latest AMI..."
 SRC_AMI_ID=$(aws ec2 describe-images \
     --profile source-account \
     --owners "${SRC_ACCOUNT_ID}" \
-    --filters "Name=name,Values=custom-ubuntu-image*" \
+    --filters "Name=name,Values=webappAMI-*" \
     --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
     --output text)
 # Ensure an AMI was found

@@ -111,7 +111,7 @@ source "amazon-ebs" "ubuntu_image" {
   source_ami                  = var.aws_source_ami
   instance_type               = var.instance_type
   ssh_username                = "ubuntu"
-  ami_name                    = "custom-ubuntu-image-${local.timestamp}"
+  ami_name                    = "webappAMI-${local.timestamp}"
   subnet_id                   = var.subnet_identifier
   vpc_id                      = var.vpc_identifier
   associate_public_ip_address = true

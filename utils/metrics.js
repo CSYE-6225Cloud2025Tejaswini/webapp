@@ -34,7 +34,7 @@ const metrics = {
     return time;
   },
 
-  // Database query timing
+  // DATABASE query timing
   recordDbQueryTime: (queryName, timeMs) => {
     statsd.timing(`db.query.${queryName}.time`, timeMs);
   },
@@ -60,7 +60,15 @@ const metrics = {
     // API Request Rate
     statsd.gauge('system.api.request_rate', global.requestCount || 0);
     global.requestCount = 0;  // Reset counter
-  }
+  },
+
+  // Function to stop metrics collection (for testing purposes)
+  stopMetricsCollection: () => {
+    if (metricsTimer) {
+      clearInterval(metricsTimer);
+      metricsTimer = null;
+    }
+  },
 };
 
 // Start periodic collection of system metrics
