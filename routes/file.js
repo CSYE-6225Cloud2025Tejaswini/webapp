@@ -19,7 +19,7 @@ const upload = multer({
 // -------------------------------
 
 // Upload a file (expects multipart/form-data with "Image" field)
-router.post("/v1/file", upload.single("Logo"), FileController.uploadFile);
+router.post("/v2/file", upload.single("Image"), FileController.uploadFile);
 
 // Retrieve a file's metadata by ID
 router.get("/v1/file/:id", FileController.getFile);

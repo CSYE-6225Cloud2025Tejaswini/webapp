@@ -1,5 +1,6 @@
 const StatsD = require("hot-shots");
 const os = require("os");
+let metricsTimer;
 
 // Set up a StatsD client that will send metrics to CloudWatch via the agent
 const statsd = new StatsD({
@@ -74,8 +75,7 @@ const metrics = {
 // Start periodic collection of system metrics
 global.requestCount = 0;
 
-// Collect system metrics every minute
-setInterval(() => {
+metricsTimer = setInterval(() => {
   metrics.recordSystemMetrics();
 }, 60000);
 
