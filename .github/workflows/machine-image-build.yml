@@ -119,7 +119,7 @@ jobs:
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             LATEST_AMI=$(aws ec2 describe-images \
               --owners ${{ secrets.DEMO_ACCOUNT_ID_PKR }} \
-              --filters "Name=name,Values=Copied-custom-*" \
+              --filters "Name=name,Values=webappAMI-*" \
               --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
               --output text)
               
