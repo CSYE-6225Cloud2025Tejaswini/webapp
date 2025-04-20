@@ -9,9 +9,9 @@ router.get("/healthz", HealthcheckController.getHealthCheck);
 router.all("/healthz", HealthcheckController.handleUnsupportedMethods);
 
 // Handle GET request to /cicd for service and DB health check for cicd
-router.get("/cicd", HealthcheckController.getHealthCheck);
+router.get("/cd", HealthcheckController.getHealthCheck);
 
 // Handle all other HTTP methods on /cicd with 405 Method Not Allowed
-router.all("/cicd", HealthcheckController.handleUnsupportedMethods);
+router.all("/cd", HealthcheckController.handleUnsupportedMethods);
 
 module.exports = router;
