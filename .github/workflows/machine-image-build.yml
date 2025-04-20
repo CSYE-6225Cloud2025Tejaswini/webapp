@@ -1,14 +1,12 @@
 name: Build and Share Machine Images
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches:
       - main
 
 jobs:
   machine_image_build:
-    if: github.event.pull_request.merged == true
     name: Build and Share Machine Images
     runs-on: ubuntu-latest
     steps:
@@ -121,7 +119,7 @@ jobs:
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             LATEST_AMI=$(aws ec2 describe-images \
               --owners ${{ secrets.DEMO_ACCOUNT_ID_PKR }} \
-              --filters "Name=name,Values=Copied-custom-*" \
+              --filters "Name=name,Values=webappAMI-*" \
               --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
               --output text)
               
@@ -157,47 +155,50 @@ jobs:
           echo "Created launch template version: $LAUNCH_TEMPLATE_VERSION"
           echo "template_version=$LAUNCH_TEMPLATE_VERSION" >> $GITHUB_OUTPUT
 
-      
-      # Start Instance Refresh for Auto Scaling Group
+      - name: Get Auto Scaling Group Name
+        id: get_asg_name
+        run: |
+          ASG_NAME=$(aws autoscaling describe-auto-scaling-groups --query "AutoScalingGroups[?contains(AutoScalingGroupName, 'webapp-asg')].AutoScalingGroupName" --output text)
+          echo "Found ASG Name: $ASG_NAME"
+          echo "asg_name=$ASG_NAME" >> $GITHUB_OUTPUT
+
       - name: Start Instance Refresh
-        id: start-refresh
         run: |
           echo "Starting instance refresh..."
           REFRESH_ID=$(aws autoscaling start-instance-refresh \
-            --auto-scaling-group-name webapp-asg \
-            --preferences '{"MinHealthyPercentage": 90, "InstanceWarmup": 300}' \
-            --query 'InstanceRefreshId' \
-            --output text)
-            
+          --auto-scaling-group-name ${{ steps.get_asg_name.outputs.asg_name }} \
+          --preferences '{"MinHealthyPercentage": 90, "InstanceWarmup": 300}' \
+          --query 'InstanceRefreshId' \
+          --output text)
+
           echo "Started instance refresh with ID: $REFRESH_ID"
           echo "refresh_id=$REFRESH_ID" >> $GITHUB_OUTPUT
-      
+
       # Wait for Instance Refresh to complete
       - name: Wait for Instance Refresh
         run: |
-          REFRESH_ID=${{ steps.start-refresh.outputs.refresh_id }}
+          REFRESH_ID=${{ steps.Start_Instance_Refresh.outputs.refresh_id }}
           echo "Waiting for instance refresh to complete..."
-          
-          # Loop until refresh is complete or failed
+
           while true; do
-            STATUS=$(aws autoscaling describe-instance-refreshes \
-              --auto-scaling-group-name webapp-asg \
-              --instance-refresh-ids $REFRESH_ID \
-              --query 'InstanceRefreshes[0].Status' \
-              --output text)
-              
-            echo "Current status: $STATUS"
-            
-            if [ "$STATUS" == "Successful" ]; then
-              echo "Instance refresh completed successfully"
-              break
-            elif [ "$STATUS" == "Failed" ] || [ "$STATUS" == "Cancelled" ]; then
-              echo "Instance refresh failed or was cancelled"
-              exit 1
-            fi
-            
-            echo "Waiting 30 seconds before checking again..."
-            sleep 30
+           STATUS=$(aws autoscaling describe-instance-refreshes \
+           --auto-scaling-group-name ${{ steps.get_asg_name.outputs.asg_name }} \
+           --instance-refresh-ids $REFRESH_ID \
+           --query 'InstanceRefreshes[0].Status' \
+           --output text)
+
+          echo "Current status: $STATUS"
+
+          if [ "$STATUS" == "Successful" ]; then
+            echo "Instance refresh completed successfully"
+            break
+          elif [ "$STATUS" == "Failed" ] || [ "$STATUS" == "Cancelled" ]; then
+           echo "Instance refresh failed or was cancelled"
+           exit 1
+          fi
+
+          echo "Waiting 30 seconds before checking again..."
+          sleep 30
           done
-          
+
           echo "Deployment completed successfully!"

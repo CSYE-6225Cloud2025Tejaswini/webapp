@@ -57,10 +57,11 @@ class HealthcheckController {
       );
 
       if (customHeaders.length > 0) {
-        logger.info(
-          `Health check received with non-standard headers: ${customHeaders.join(", ")}`
+        logger.warn(
+          `Health check attempted with custom headers: ${customHeaders.join(", ")}`
         );
-        // Continue processing instead of rejecting
+        metrics.endApiTimer("healthCheck", startTime);
+        return res.status(400).end();
       }
 
        // Attempt DB connection and record timestamp

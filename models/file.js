@@ -17,7 +17,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         field: "file_name",
       },
-
+      
       // URL where the file is stored (typically on S3)
       url: {
         type: DataTypes.STRING,
